@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = [
+    "contracts/gateway",
+    "contracts/jurisdiction",
+    "contracts/kyc_oracle",
+    "contracts/enforcement",
+    "contracts/audit",
+    "contracts/governance",
+    "contracts/credentials",
+    "contracts/geo",
+    "shared/types",
+]
