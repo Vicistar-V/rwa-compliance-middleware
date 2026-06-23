@@ -341,6 +341,75 @@ impl ComplianceEvent {
 }
 
 // ---------------------------------------------------------------------------
+// evaluate_transfer — pure function, no storage access
+// ---------------------------------------------------------------------------
+
+pub fn evaluate_transfer(
+    sender_rule: &JurisdictionRule,
+    receiver_rule: &JurisdictionRule,
+    amount: u128,
+    _sender_kyc_tier: u32,
+    receiver_kyc_tier: u32,
+    receiver_kyc_expires_at: u64,
+    current_timestamp: u64,
+    sender_acquisition_timestamp: Option<u64>,
+    receiver_current_holdings: Option<u128>,
+) -> ComplianceDecision {
+    if sender_rule.transfer_policy == TransferPolicy::Sanctioned
+        || receiver_rule.transfer_policy == TransferPolicy::Sanctioned
+    {
+        return ComplianceDecision::Reject(ReasonCode::SanctionedJurisdiction);
+    }
+
+    if sender_rule.transfer_policy == TransferPolicy::Prohibited
+        || receiver_rule.transfer_policy == TransferPolicy::Prohibited
+    {
+        return ComplianceDecision::Reject(ReasonCode::ProhibitedJurisdiction);
+    }
+
+    let required_tier = sender_rule.min_kyc_tier.max(receiver_rule.min_kyc_tier);
+    if receiver_kyc_tier < required_tier {
+        return ComplianceDecision::Reject(ReasonCode::InsufficientKycTier);
+    }
+
+    if receiver_kyc_expires_at < current_timestamp {
+        if receiver_rule.clawback_on_kyc_expiry {
+            return ComplianceDecision::Clawback(ReasonCode::KycExpired);
+        }
+        return ComplianceDecision::Lock(ReasonCode::KycExpired);
+    }
+
+    if let Some(max) = receiver_rule.max_transfer_amount {
+        if amount > max {
+            return ComplianceDecision::Reject(ReasonCode::AmountExceedsJurisdictionCap);
+        }
+    }
+
+    if let Some(min_period) = sender_rule.min_holding_period {
+        if let Some(acquired_at) = sender_acquisition_timestamp {
+            let held_for = current_timestamp.saturating_sub(acquired_at);
+            if held_for < min_period {
+                return ComplianceDecision::Reject(ReasonCode::HoldingPeriodNotMet);
+            }
+        }
+    }
+
+    if let Some(max_holdings) = receiver_rule.max_holding_amount {
+        if let Some(current_holdings) = receiver_current_holdings {
+            if current_holdings + amount > max_holdings {
+                return ComplianceDecision::Reject(ReasonCode::HoldingsCapExceeded);
+            }
+        }
+    }
+
+    if receiver_rule.requires_issuer_approval {
+        return ComplianceDecision::PendingIssuerApproval;
+    }
+
+    ComplianceDecision::Approve
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
