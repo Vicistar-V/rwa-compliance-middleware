@@ -32,6 +32,7 @@ pub struct JurisdictionEngineContract;
 
 #[contractimpl]
 impl JurisdictionEngineContract {
+    /// Initialize the contract with an admin address and set the next proposal ID to 1.
     pub fn __constructor(env: Env, admin: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage()
@@ -39,6 +40,8 @@ impl JurisdictionEngineContract {
             .set(&DataKey::NextProposalId, &1u64);
     }
 
+    /// Retrieve the jurisdiction rule for a given country code and asset class.
+    /// Panics if no rule exists.
     pub fn get_rule(env: Env, country_code: String, asset_class: AssetClass) -> JurisdictionRule {
         env.storage()
             .instance()
@@ -46,6 +49,8 @@ impl JurisdictionEngineContract {
             .expect("rule not found")
     }
 
+    /// Set a jurisdiction rule for a country/asset-class pair. Admin-only.
+    /// Tracks the rule key for enumeration via [`list_country_rules`].
     pub fn set_rule(
         env: Env,
         admin: Address,
@@ -75,6 +80,9 @@ impl JurisdictionEngineContract {
         }
     }
 
+    /// Propose a jurisdiction rule update. Creates a timelocked proposal
+    /// that can be executed after [`TIMELOCK_SECONDS`] have elapsed.
+    /// Returns the proposal ID.
     pub fn propose_rule_update(
         env: Env,
         proposer: Address,
@@ -108,6 +116,8 @@ impl JurisdictionEngineContract {
         id
     }
 
+    /// Execute a timelocked proposal, applying the new rule if the timelock
+    /// has expired and the proposal has not already been executed.
     pub fn execute_rule_update(env: Env, proposal_id: u64) {
         let mut proposal: Proposal = env
             .storage()
@@ -133,6 +143,8 @@ impl JurisdictionEngineContract {
             .set(&DataKey::Proposal(proposal_id), &proposal);
     }
 
+    /// Return all jurisdiction rules registered for a given country code,
+    /// across all asset classes.
     pub fn list_country_rules(env: Env, country_code: String) -> Vec<JurisdictionRule> {
         let keys: Vec<(String, AssetClass)> = env
             .storage()
@@ -152,6 +164,8 @@ impl JurisdictionEngineContract {
         result
     }
 
+    /// Check whether a country is sanctioned under the `Generic` asset class.
+    /// Returns `false` if no rule exists for the country.
     pub fn is_sanctioned(env: Env, country_code: String) -> bool {
         env.storage()
             .instance()

@@ -16,6 +16,8 @@ pub struct KycOracleContract;
 
 #[contractimpl]
 impl KycOracleContract {
+    /// Initialize the contract with an admin address and the
+    /// [`CredentialRegistry`](arcm_credentials::CredentialRegistryContract) address.
     pub fn __constructor(env: Env, admin: Address, registry_address: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage()
@@ -23,6 +25,7 @@ impl KycOracleContract {
             .set(&DataKey::RegistryAddress, &registry_address);
     }
 
+    /// Retrieve the full KYC credential for a wallet, if one exists.
     pub fn get_kyc_status(env: Env, wallet: Address) -> Option<KycCredential> {
         let registry: Address = env
             .storage()
@@ -33,6 +36,8 @@ impl KycOracleContract {
         client.get_credential(&wallet)
     }
 
+    /// Check whether a wallet has a valid, non-expired, non-sanctioned
+    /// credential meeting the required KYC tier.
     pub fn is_kyc_valid(env: Env, wallet: Address, required_tier: u32) -> bool {
         let registry: Address = env
             .storage()
@@ -57,6 +62,8 @@ impl KycOracleContract {
         cred.tier >= required_tier
     }
 
+    /// Submit a KYC credential on behalf of an anchor. Delegates to the
+    /// [`CredentialRegistry`](arcm_credentials::CredentialRegistryContract).
     pub fn submit_credential(env: Env, anchor: Address, credential: KycCredential) {
         let registry: Address = env
             .storage()
@@ -67,6 +74,8 @@ impl KycOracleContract {
         client.submit_credential(&anchor, &credential);
     }
 
+    /// Revoke a wallet's credential with a reason. Delegates to the
+    /// [`CredentialRegistry`](arcm_credentials::CredentialRegistryContract).
     pub fn revoke_credential(env: Env, anchor: Address, wallet: Address, reason: String) {
         let registry: Address = env
             .storage()
@@ -77,6 +86,8 @@ impl KycOracleContract {
         client.revoke_credential(&anchor, &wallet, &reason);
     }
 
+    /// Flag a wallet as sanctioned. Delegates to the
+    /// [`CredentialRegistry`](arcm_credentials::CredentialRegistryContract).
     pub fn flag_sanctioned(env: Env, oracle_authority: Address, wallet: Address) {
         let registry: Address = env
             .storage()
@@ -87,6 +98,7 @@ impl KycOracleContract {
         client.flag_sanctioned(&oracle_authority, &wallet);
     }
 
+    /// Check whether a single wallet is sanctioned.
     pub fn check_sanctions(env: Env, wallet: Address) -> bool {
         let registry: Address = env
             .storage()
@@ -97,6 +109,8 @@ impl KycOracleContract {
         client.is_sanctioned(&wallet)
     }
 
+    /// Check whether each wallet in a list is sanctioned. Returns
+    /// a vector of `(wallet, is_sanctioned)` pairs.
     pub fn batch_check_sanctions(env: Env, wallets: Vec<Address>) -> Vec<(Address, bool)> {
         let registry: Address = env
             .storage()
