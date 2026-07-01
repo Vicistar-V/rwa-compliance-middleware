@@ -4,11 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-soroban-sdk = "26.0.0"
+soroban-sdk = { version = "26.0.0", features = ["testutils"] }
 arcm-types = { path = "../../shared/types" }
+arcm-geo = { path = "../geo" }
+arcm-jurisdiction = { path = "../jurisdiction" }
+arcm-kyc-oracle = { path = "../kyc_oracle" }
+arcm-enforcement = { path = "../enforcement" }
+arcm-audit = { path = "../audit" }
+arcm-credentials = { path = "../credentials" }
 
 [lib]
 crate-type = ["cdylib"]
-
-[features]
-testutils = ["soroban-sdk/testutils"]
