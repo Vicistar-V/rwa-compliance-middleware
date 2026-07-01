@@ -30,11 +30,7 @@ impl CredentialRegistryContract {
     /// Submits a KYC credential for a wallet. Only callable by the anchor.
     pub fn submit_credential(env: Env, anchor: Address, credential: KycCredential) {
         anchor.require_auth();
-        let stored_anchor: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Anchor)
-            .expect("anchor not set");
+        let stored_anchor: Address = env.storage().instance().get(&DataKey::Anchor).expect("anchor not set");
         if stored_anchor != anchor {
             panic!("not authorized");
         }
@@ -53,9 +49,7 @@ impl CredentialRegistryContract {
         let exists = (0..wallets.len()).any(|i| wallets.get(i).unwrap() == wallet);
         if !exists {
             wallets.push_back(wallet);
-            env.storage()
-                .instance()
-                .set(&DataKey::CredentialWallets, &wallets);
+            env.storage().instance().set(&DataKey::CredentialWallets, &wallets);
         }
     }
 
@@ -67,11 +61,7 @@ impl CredentialRegistryContract {
     /// Revokes a wallet's credential by marking it as sanctioned. Only callable by the anchor.
     pub fn revoke_credential(env: Env, anchor: Address, wallet: Address, _reason: String) {
         anchor.require_auth();
-        let stored_anchor: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Anchor)
-            .expect("anchor not set");
+        let stored_anchor: Address = env.storage().instance().get(&DataKey::Anchor).expect("anchor not set");
         if stored_anchor != anchor {
             panic!("not authorized");
         }
@@ -83,9 +73,7 @@ impl CredentialRegistryContract {
             .expect("credential not found");
 
         cred.is_sanctioned = true;
-        env.storage()
-            .instance()
-            .set(&DataKey::Credential(wallet), &cred);
+        env.storage().instance().set(&DataKey::Credential(wallet), &cred);
     }
 
     /// Flags a wallet as sanctioned. Only callable by the oracle authority.
@@ -104,15 +92,10 @@ impl CredentialRegistryContract {
             .instance()
             .set(&DataKey::Sanctioned(wallet.clone()), &true);
 
-        let existing: Option<KycCredential> = env
-            .storage()
-            .instance()
-            .get(&DataKey::Credential(wallet.clone()));
+        let existing: Option<KycCredential> = env.storage().instance().get(&DataKey::Credential(wallet.clone()));
         if let Some(mut cred) = existing {
             cred.is_sanctioned = true;
-            env.storage()
-                .instance()
-                .set(&DataKey::Credential(wallet), &cred);
+            env.storage().instance().set(&DataKey::Credential(wallet), &cred);
         }
     }
 
@@ -128,19 +111,12 @@ impl CredentialRegistryContract {
             panic!("not authorized");
         }
 
-        env.storage()
-            .instance()
-            .remove(&DataKey::Sanctioned(wallet.clone()));
+        env.storage().instance().remove(&DataKey::Sanctioned(wallet.clone()));
 
-        let existing: Option<KycCredential> = env
-            .storage()
-            .instance()
-            .get(&DataKey::Credential(wallet.clone()));
+        let existing: Option<KycCredential> = env.storage().instance().get(&DataKey::Credential(wallet.clone()));
         if let Some(mut cred) = existing {
             cred.is_sanctioned = false;
-            env.storage()
-                .instance()
-                .set(&DataKey::Credential(wallet), &cred);
+            env.storage().instance().set(&DataKey::Credential(wallet), &cred);
         }
     }
 
@@ -166,10 +142,7 @@ impl CredentialRegistryContract {
         let mut result: Vec<Address> = vec![&env];
         for i in 0..wallets.len() {
             let wallet = wallets.get(i).unwrap();
-            let existing: Option<KycCredential> = env
-                .storage()
-                .instance()
-                .get(&DataKey::Credential(wallet.clone()));
+            let existing: Option<KycCredential> = env.storage().instance().get(&DataKey::Credential(wallet.clone()));
             if let Some(cred) = existing {
                 if cred.expires_at <= cutoff && cred.expires_at >= now {
                     result.push_back(wallet);
@@ -381,5 +354,30 @@ mod test {
         client.revoke_credential(&anchor, &wallet, &reason);
         let revoked = client.get_credential(&wallet).unwrap();
         assert!(revoked.is_sanctioned);
+    }
+
+    #[test]
+    fn test_submit_credential_overwrites_existing() {
+        let (env, admin, anchor, oracle) = setup_env();
+        let client = deploy(&env, &admin, &anchor, &oracle);
+        let wallet = Address::generate(&env);
+
+        let cred1 = make_credential(&env, &wallet, &anchor, 1, 9999999999, false);
+        client.submit_credential(&anchor, &cred1);
+        assert_eq!(client.get_credential(&wallet).unwrap().tier, 1);
+
+        let cred2 = make_credential(&env, &wallet, &anchor, 3, 9999999999, false);
+        client.submit_credential(&anchor, &cred2);
+        assert_eq!(client.get_credential(&wallet).unwrap().tier, 3);
+    }
+
+    #[test]
+    fn test_get_credential_nonexistent_wallet() {
+        let (env, admin, anchor, oracle) = setup_env();
+        let client = deploy(&env, &admin, &anchor, &oracle);
+        let wallet = Address::generate(&env);
+
+        let result = client.get_credential(&wallet);
+        assert!(result.is_none());
     }
 }
