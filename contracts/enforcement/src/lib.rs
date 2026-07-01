@@ -25,12 +25,8 @@ impl EnforcementEngineContract {
     /// Only the authority can perform restricted actions (lock, unlock, clawback).
     pub fn __constructor(env: Env, admin: Address, authority: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage()
-            .instance()
-            .set(&DataKey::Authority, &authority);
-        env.storage()
-            .instance()
-            .set(&DataKey::NextClawbackId, &1u64);
+        env.storage().instance().set(&DataKey::Authority, &authority);
+        env.storage().instance().set(&DataKey::NextClawbackId, &1u64);
     }
 
     /// Locks a wallet for a given asset with an optional duration.
@@ -59,10 +55,9 @@ impl EnforcementEngineContract {
             },
         };
 
-        env.storage().instance().set(
-            &DataKey::LockRecord(asset_contract.clone(), wallet.clone()),
-            &record,
-        );
+        env.storage()
+            .instance()
+            .set(&DataKey::LockRecord(asset_contract.clone(), wallet.clone()), &record);
 
         let mut wallets: Vec<Address> = env
             .storage()
@@ -120,14 +115,8 @@ impl EnforcementEngineContract {
         authority.require_auth();
         Self::check_authority(&env, &authority);
 
-        let id: u64 = env
-            .storage()
-            .instance()
-            .get(&DataKey::NextClawbackId)
-            .unwrap_or(1);
-        env.storage()
-            .instance()
-            .set(&DataKey::NextClawbackId, &(id + 1));
+        let id: u64 = env.storage().instance().get(&DataKey::NextClawbackId).unwrap_or(1);
+        env.storage().instance().set(&DataKey::NextClawbackId, &(id + 1));
 
         let record = ClawbackRecord {
             event_id: id,
@@ -139,9 +128,7 @@ impl EnforcementEngineContract {
             executed_at: env.ledger().timestamp(),
         };
 
-        env.storage()
-            .instance()
-            .set(&DataKey::ClawbackRecord(id), &record);
+        env.storage().instance().set(&DataKey::ClawbackRecord(id), &record);
 
         let mut ids: Vec<u64> = env
             .storage()
@@ -176,13 +163,7 @@ impl EnforcementEngineContract {
     }
 
     /// Adds a wallet to the whitelist for the specified asset, permitting compliant transactions.
-    pub fn whitelist_address(
-        env: Env,
-        issuer: Address,
-        asset_contract: Address,
-        wallet: Address,
-        _tier_override: u32,
-    ) {
+    pub fn whitelist_address(env: Env, issuer: Address, asset_contract: Address, wallet: Address, _tier_override: u32) {
         issuer.require_auth();
         env.storage()
             .instance()
@@ -190,13 +171,7 @@ impl EnforcementEngineContract {
     }
 
     /// Adds a wallet to the blacklist for the specified asset, blocking all transactions.
-    pub fn blacklist_address(
-        env: Env,
-        issuer: Address,
-        asset_contract: Address,
-        wallet: Address,
-        _reason: String,
-    ) {
+    pub fn blacklist_address(env: Env, issuer: Address, asset_contract: Address, wallet: Address, _reason: String) {
         issuer.require_auth();
         env.storage()
             .instance()
@@ -285,15 +260,8 @@ mod test {
         (env, admin, authority)
     }
 
-    fn deploy<'a>(
-        env: &'a Env,
-        admin: &Address,
-        authority: &Address,
-    ) -> EnforcementEngineContractClient<'a> {
-        let contract_id = env.register(
-            EnforcementEngineContract,
-            (admin.clone(), authority.clone()),
-        );
+    fn deploy<'a>(env: &'a Env, admin: &Address, authority: &Address) -> EnforcementEngineContractClient<'a> {
+        let contract_id = env.register(EnforcementEngineContract, (admin.clone(), authority.clone()));
         EnforcementEngineContractClient::new(env, &contract_id)
     }
 
@@ -304,13 +272,7 @@ mod test {
         let asset = Address::generate(&env);
         let wallet = Address::generate(&env);
 
-        client.lock_asset(
-            &authority,
-            &asset,
-            &wallet,
-            &ReasonCode::SanctionedAddress,
-            &None,
-        );
+        client.lock_asset(&authority, &asset, &wallet, &ReasonCode::SanctionedAddress, &None);
 
         let locked = client.get_locked_wallets(&asset);
         assert_eq!(locked.len(), 1);
@@ -325,13 +287,7 @@ mod test {
         let asset = Address::generate(&env);
         let wallet = Address::generate(&env);
 
-        client.lock_asset(
-            &authority,
-            &asset,
-            &wallet,
-            &ReasonCode::KycExpired,
-            &Some(86400u64),
-        );
+        client.lock_asset(&authority, &asset, &wallet, &ReasonCode::KycExpired, &Some(86400u64));
 
         let locked = client.get_locked_wallets(&asset);
         assert_eq!(locked.len(), 1);
@@ -346,13 +302,7 @@ mod test {
         let asset = Address::generate(&env);
         let wallet = Address::generate(&env);
 
-        client.lock_asset(
-            &authority,
-            &asset,
-            &wallet,
-            &ReasonCode::SanctionedAddress,
-            &None,
-        );
+        client.lock_asset(&authority, &asset, &wallet, &ReasonCode::SanctionedAddress, &None);
         assert_eq!(client.get_locked_wallets(&asset).len(), 1);
 
         client.unlock_asset(&authority, &asset, &wallet);
@@ -366,13 +316,7 @@ mod test {
         let asset = Address::generate(&env);
         let wallet = Address::generate(&env);
 
-        client.lock_asset(
-            &authority,
-            &asset,
-            &wallet,
-            &ReasonCode::SanctionedAddress,
-            &None,
-        );
+        client.lock_asset(&authority, &asset, &wallet, &ReasonCode::SanctionedAddress, &None);
         client.unlock_asset(&authority, &asset, &wallet);
         client.unlock_asset(&authority, &asset, &wallet);
 
@@ -387,13 +331,7 @@ mod test {
         let holder = Address::generate(&env);
         let dest = Address::generate(&env);
 
-        client.lock_asset(
-            &authority,
-            &asset,
-            &holder,
-            &ReasonCode::SanctionedAddress,
-            &None,
-        );
+        client.lock_asset(&authority, &asset, &holder, &ReasonCode::SanctionedAddress, &None);
         client.execute_clawback(
             &authority,
             &asset,
@@ -422,13 +360,7 @@ mod test {
         let wallet2 = Address::generate(&env);
 
         client.lock_asset(&authority, &asset, &wallet1, &ReasonCode::KycExpired, &None);
-        client.lock_asset(
-            &authority,
-            &asset,
-            &wallet2,
-            &ReasonCode::SanctionedAddress,
-            &None,
-        );
+        client.lock_asset(&authority, &asset, &wallet2, &ReasonCode::SanctionedAddress, &None);
 
         let locked = client.get_locked_wallets(&asset);
         assert_eq!(locked.len(), 2);
@@ -478,14 +410,7 @@ mod test {
             &ReasonCode::SanctionedAddress,
             &dest,
         );
-        client.execute_clawback(
-            &authority,
-            &asset,
-            &holder2,
-            &1000,
-            &ReasonCode::KycExpired,
-            &dest,
-        );
+        client.execute_clawback(&authority, &asset, &holder2, &1000, &ReasonCode::KycExpired, &dest);
 
         let history = client.get_clawback_history(&asset);
         assert_eq!(history.len(), 2);
@@ -538,13 +463,26 @@ mod test {
         let holder = Address::generate(&env);
         let dest = Address::generate(&env);
 
-        client.execute_clawback(
-            &fake,
-            &asset,
-            &holder,
-            &1000,
-            &ReasonCode::SanctionedAddress,
-            &dest,
-        );
+        client.execute_clawback(&fake, &asset, &holder, &1000, &ReasonCode::SanctionedAddress, &dest);
+    }
+
+    #[test]
+    fn test_is_whitelisted_default_false() {
+        let (env, admin, _authority) = setup_env();
+        let client = deploy(&env, &admin, &_authority);
+        let asset = Address::generate(&env);
+        let wallet = Address::generate(&env);
+
+        assert!(!client.is_whitelisted(&asset, &wallet));
+    }
+
+    #[test]
+    fn test_is_blacklisted_default_false() {
+        let (env, admin, _authority) = setup_env();
+        let client = deploy(&env, &admin, &_authority);
+        let asset = Address::generate(&env);
+        let wallet = Address::generate(&env);
+
+        assert!(!client.is_blacklisted(&asset, &wallet));
     }
 }
