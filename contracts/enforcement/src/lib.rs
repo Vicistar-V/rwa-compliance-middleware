@@ -1,6 +1,6 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, String, Vec};
 use arcm_types::{ClawbackRecord, LockRecord, LockType, ReasonCode};
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, String, Vec};
 
 #[contracttype]
 #[derive(Clone)]
@@ -55,9 +55,10 @@ impl EnforcementEngineContract {
             },
         };
 
-        env.storage()
-            .instance()
-            .set(&DataKey::LockRecord(asset_contract.clone(), wallet.clone()), &record);
+        env.storage().instance().set(
+            &DataKey::LockRecord(asset_contract.clone(), wallet.clone()),
+            &record,
+        );
 
         let mut wallets: Vec<Address> = env
             .storage()
@@ -65,8 +66,7 @@ impl EnforcementEngineContract {
             .get(&DataKey::LockedWallets(asset_contract.clone()))
             .unwrap_or(vec![&env]);
 
-        let exists = (0..wallets.len())
-            .any(|i| wallets.get(i).unwrap() == wallet);
+        let exists = (0..wallets.len()).any(|i| wallets.get(i).unwrap() == wallet);
         if !exists {
             wallets.push_back(wallet);
             env.storage()
@@ -75,12 +75,7 @@ impl EnforcementEngineContract {
         }
     }
 
-    pub fn unlock_asset(
-        env: Env,
-        authority: Address,
-        asset_contract: Address,
-        wallet: Address,
-    ) {
+    pub fn unlock_asset(env: Env, authority: Address, asset_contract: Address, wallet: Address) {
         authority.require_auth();
         Self::check_authority(&env, &authority);
 
@@ -244,11 +239,7 @@ impl EnforcementEngineContract {
         let mut records: Vec<ClawbackRecord> = vec![&env];
         for i in 0..ids.len() {
             let id = ids.get(i).unwrap();
-            if let Some(record) = env
-                .storage()
-                .instance()
-                .get(&DataKey::ClawbackRecord(id))
-            {
+            if let Some(record) = env.storage().instance().get(&DataKey::ClawbackRecord(id)) {
                 records.push_back(record);
             }
         }
@@ -300,7 +291,13 @@ mod test {
         let asset = Address::generate(&env);
         let wallet = Address::generate(&env);
 
-        client.lock_asset(&authority, &asset, &wallet, &ReasonCode::SanctionedAddress, &None);
+        client.lock_asset(
+            &authority,
+            &asset,
+            &wallet,
+            &ReasonCode::SanctionedAddress,
+            &None,
+        );
 
         let locked = client.get_locked_wallets(&asset);
         assert_eq!(locked.len(), 1);
@@ -315,7 +312,13 @@ mod test {
         let asset = Address::generate(&env);
         let wallet = Address::generate(&env);
 
-        client.lock_asset(&authority, &asset, &wallet, &ReasonCode::KycExpired, &Some(86400u64));
+        client.lock_asset(
+            &authority,
+            &asset,
+            &wallet,
+            &ReasonCode::KycExpired,
+            &Some(86400u64),
+        );
 
         let locked = client.get_locked_wallets(&asset);
         assert_eq!(locked.len(), 1);
@@ -330,7 +333,13 @@ mod test {
         let asset = Address::generate(&env);
         let wallet = Address::generate(&env);
 
-        client.lock_asset(&authority, &asset, &wallet, &ReasonCode::SanctionedAddress, &None);
+        client.lock_asset(
+            &authority,
+            &asset,
+            &wallet,
+            &ReasonCode::SanctionedAddress,
+            &None,
+        );
         assert_eq!(client.get_locked_wallets(&asset).len(), 1);
 
         client.unlock_asset(&authority, &asset, &wallet);
@@ -344,7 +353,13 @@ mod test {
         let asset = Address::generate(&env);
         let wallet = Address::generate(&env);
 
-        client.lock_asset(&authority, &asset, &wallet, &ReasonCode::SanctionedAddress, &None);
+        client.lock_asset(
+            &authority,
+            &asset,
+            &wallet,
+            &ReasonCode::SanctionedAddress,
+            &None,
+        );
         client.unlock_asset(&authority, &asset, &wallet);
         client.unlock_asset(&authority, &asset, &wallet);
 
@@ -359,8 +374,21 @@ mod test {
         let holder = Address::generate(&env);
         let dest = Address::generate(&env);
 
-        client.lock_asset(&authority, &asset, &holder, &ReasonCode::SanctionedAddress, &None);
-        client.execute_clawback(&authority, &asset, &holder, &1000, &ReasonCode::SanctionedAddress, &dest);
+        client.lock_asset(
+            &authority,
+            &asset,
+            &holder,
+            &ReasonCode::SanctionedAddress,
+            &None,
+        );
+        client.execute_clawback(
+            &authority,
+            &asset,
+            &holder,
+            &1000,
+            &ReasonCode::SanctionedAddress,
+            &dest,
+        );
 
         let history = client.get_clawback_history(&asset);
         assert_eq!(history.len(), 1);
@@ -381,7 +409,13 @@ mod test {
         let wallet2 = Address::generate(&env);
 
         client.lock_asset(&authority, &asset, &wallet1, &ReasonCode::KycExpired, &None);
-        client.lock_asset(&authority, &asset, &wallet2, &ReasonCode::SanctionedAddress, &None);
+        client.lock_asset(
+            &authority,
+            &asset,
+            &wallet2,
+            &ReasonCode::SanctionedAddress,
+            &None,
+        );
 
         let locked = client.get_locked_wallets(&asset);
         assert_eq!(locked.len(), 2);
@@ -423,8 +457,22 @@ mod test {
         let holder2 = Address::generate(&env);
         let dest = Address::generate(&env);
 
-        client.execute_clawback(&authority, &asset, &holder1, &500, &ReasonCode::SanctionedAddress, &dest);
-        client.execute_clawback(&authority, &asset, &holder2, &1000, &ReasonCode::KycExpired, &dest);
+        client.execute_clawback(
+            &authority,
+            &asset,
+            &holder1,
+            &500,
+            &ReasonCode::SanctionedAddress,
+            &dest,
+        );
+        client.execute_clawback(
+            &authority,
+            &asset,
+            &holder2,
+            &1000,
+            &ReasonCode::KycExpired,
+            &dest,
+        );
 
         let history = client.get_clawback_history(&asset);
         assert_eq!(history.len(), 2);
@@ -477,6 +525,13 @@ mod test {
         let holder = Address::generate(&env);
         let dest = Address::generate(&env);
 
-        client.execute_clawback(&fake, &asset, &holder, &1000, &ReasonCode::SanctionedAddress, &dest);
+        client.execute_clawback(
+            &fake,
+            &asset,
+            &holder,
+            &1000,
+            &ReasonCode::SanctionedAddress,
+            &dest,
+        );
     }
 }

@@ -1,6 +1,6 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, Vec};
 use arcm_types::{ComplianceEvent, ComplianceReport};
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, Vec};
 
 #[contracttype]
 #[derive(Clone)]
@@ -21,9 +21,7 @@ impl AuditLedgerContract {
     pub fn __constructor(env: Env, admin: Address, gateway: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Gateway, &gateway);
-        env.storage()
-            .instance()
-            .set(&DataKey::NextEventId, &1u64);
+        env.storage().instance().set(&DataKey::NextEventId, &1u64);
     }
 
     pub fn log_event(env: Env, caller: Address, event: ComplianceEvent) -> u64 {
@@ -50,9 +48,10 @@ impl AuditLedgerContract {
             .get(&DataKey::AssetEventIds(stored_event.asset_contract.clone()))
             .unwrap_or(vec![&env]);
         asset_ids.push_back(id);
-        env.storage()
-            .instance()
-            .set(&DataKey::AssetEventIds(stored_event.asset_contract.clone()), &asset_ids);
+        env.storage().instance().set(
+            &DataKey::AssetEventIds(stored_event.asset_contract.clone()),
+            &asset_ids,
+        );
 
         let mut sender_ids: Vec<u64> = env
             .storage()
@@ -60,9 +59,10 @@ impl AuditLedgerContract {
             .get(&DataKey::WalletEventIds(stored_event.sender.clone()))
             .unwrap_or(vec![&env]);
         sender_ids.push_back(id);
-        env.storage()
-            .instance()
-            .set(&DataKey::WalletEventIds(stored_event.sender.clone()), &sender_ids);
+        env.storage().instance().set(
+            &DataKey::WalletEventIds(stored_event.sender.clone()),
+            &sender_ids,
+        );
 
         let mut receiver_ids: Vec<u64> = env
             .storage()
@@ -70,9 +70,10 @@ impl AuditLedgerContract {
             .get(&DataKey::WalletEventIds(stored_event.receiver.clone()))
             .unwrap_or(vec![&env]);
         receiver_ids.push_back(id);
-        env.storage()
-            .instance()
-            .set(&DataKey::WalletEventIds(stored_event.receiver), &receiver_ids);
+        env.storage().instance().set(
+            &DataKey::WalletEventIds(stored_event.receiver),
+            &receiver_ids,
+        );
 
         id
     }
@@ -97,7 +98,11 @@ impl AuditLedgerContract {
             }
             let event_id = ids.get(i).unwrap();
             if event_id >= from_id {
-                if let Some(event) = env.storage().instance().get::<DataKey, ComplianceEvent>(&DataKey::Event(event_id)) {
+                if let Some(event) = env
+                    .storage()
+                    .instance()
+                    .get::<DataKey, ComplianceEvent>(&DataKey::Event(event_id))
+                {
                     results.push_back(event);
                     count += 1;
                 }
@@ -126,7 +131,11 @@ impl AuditLedgerContract {
             }
             let event_id = ids.get(i).unwrap();
             if event_id >= from_id {
-                if let Some(event) = env.storage().instance().get::<DataKey, ComplianceEvent>(&DataKey::Event(event_id)) {
+                if let Some(event) = env
+                    .storage()
+                    .instance()
+                    .get::<DataKey, ComplianceEvent>(&DataKey::Event(event_id))
+                {
                     results.push_back(event);
                     count += 1;
                 }
@@ -150,7 +159,11 @@ impl AuditLedgerContract {
         let mut events: Vec<ComplianceEvent> = vec![&env];
         for i in 0..ids.len() {
             let event_id = ids.get(i).unwrap();
-            if let Some(event) = env.storage().instance().get::<DataKey, ComplianceEvent>(&DataKey::Event(event_id)) {
+            if let Some(event) = env
+                .storage()
+                .instance()
+                .get::<DataKey, ComplianceEvent>(&DataKey::Event(event_id))
+            {
                 if event.timestamp >= from_timestamp && event.timestamp <= to_timestamp {
                     events.push_back(event);
                 }
@@ -190,8 +203,8 @@ impl AuditLedgerContract {
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::testutils::Address as _;
     use arcm_types::{ComplianceAction, ReasonCode};
+    use soroban_sdk::testutils::Address as _;
     use soroban_sdk::{BytesN, Env, IntoVal};
 
     fn zero_hash(env: &Env) -> BytesN<32> {
@@ -240,10 +253,7 @@ mod test {
         admin: &Address,
         gateway: &Address,
     ) -> AuditLedgerContractClient<'a> {
-        let contract_id = env.register(
-            AuditLedgerContract,
-            (admin.clone(), gateway.clone()),
-        );
+        let contract_id = env.register(AuditLedgerContract, (admin.clone(), gateway.clone()));
         AuditLedgerContractClient::new(env, &contract_id)
     }
 
@@ -255,7 +265,16 @@ mod test {
         let sender = Address::generate(&env);
         let receiver = Address::generate(&env);
 
-        let event = make_event(&env, 0, &asset, ComplianceAction::Approve, &sender, &receiver, 1_700_000_000, ReasonCode::None);
+        let event = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Approve,
+            &sender,
+            &receiver,
+            1_700_000_000,
+            ReasonCode::None,
+        );
         let event_id = client.log_event(&gateway, &event);
         assert_eq!(event_id, 1);
         assert_eq!(client.get_event_count(), 1);
@@ -269,8 +288,26 @@ mod test {
         let sender = Address::generate(&env);
         let receiver = Address::generate(&env);
 
-        let e1 = make_event(&env, 0, &asset, ComplianceAction::Approve, &sender, &receiver, 1_700_000_000, ReasonCode::None);
-        let e2 = make_event(&env, 0, &asset, ComplianceAction::Reject, &sender, &receiver, 1_700_000_001, ReasonCode::KycExpired);
+        let e1 = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Approve,
+            &sender,
+            &receiver,
+            1_700_000_000,
+            ReasonCode::None,
+        );
+        let e2 = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Reject,
+            &sender,
+            &receiver,
+            1_700_000_001,
+            ReasonCode::KycExpired,
+        );
 
         let id1 = client.log_event(&gateway, &e1);
         let id2 = client.log_event(&gateway, &e2);
@@ -288,7 +325,16 @@ mod test {
         let receiver = Address::generate(&env);
 
         for i in 0..10 {
-            let event = make_event(&env, 0, &asset, ComplianceAction::Approve, &sender, &receiver, 1_700_000_000 + i as u64, ReasonCode::None);
+            let event = make_event(
+                &env,
+                0,
+                &asset,
+                ComplianceAction::Approve,
+                &sender,
+                &receiver,
+                1_700_000_000 + i as u64,
+                ReasonCode::None,
+            );
             client.log_event(&gateway, &event);
         }
 
@@ -310,8 +356,26 @@ mod test {
         let sender = Address::generate(&env);
         let receiver = Address::generate(&env);
 
-        let e1 = make_event(&env, 0, &asset, ComplianceAction::Approve, &sender, &receiver, 1_700_000_000, ReasonCode::None);
-        let e2 = make_event(&env, 0, &asset, ComplianceAction::Reject, &sender, &receiver, 1_700_000_001, ReasonCode::KycExpired);
+        let e1 = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Approve,
+            &sender,
+            &receiver,
+            1_700_000_000,
+            ReasonCode::None,
+        );
+        let e2 = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Reject,
+            &sender,
+            &receiver,
+            1_700_000_001,
+            ReasonCode::KycExpired,
+        );
         client.log_event(&gateway, &e1);
         client.log_event(&gateway, &e2);
 
@@ -330,8 +394,26 @@ mod test {
         let sender = Address::generate(&env);
         let receiver = Address::generate(&env);
 
-        let e1 = make_event(&env, 0, &asset, ComplianceAction::Approve, &sender, &receiver, 1_700_000_000, ReasonCode::None);
-        let e2 = make_event(&env, 0, &asset, ComplianceAction::Reject, &sender, &receiver, 1_800_000_000, ReasonCode::KycExpired);
+        let e1 = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Approve,
+            &sender,
+            &receiver,
+            1_700_000_000,
+            ReasonCode::None,
+        );
+        let e2 = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Reject,
+            &sender,
+            &receiver,
+            1_800_000_000,
+            ReasonCode::KycExpired,
+        );
         client.log_event(&gateway, &e1);
         client.log_event(&gateway, &e2);
 
@@ -349,7 +431,16 @@ mod test {
         let sender = Address::generate(&env);
         let receiver = Address::generate(&env);
 
-        let event = make_event(&env, 0, &asset, ComplianceAction::Approve, &sender, &receiver, 1_700_000_000, ReasonCode::None);
+        let event = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Approve,
+            &sender,
+            &receiver,
+            1_700_000_000,
+            ReasonCode::None,
+        );
         client.log_event(&gateway, &event);
 
         let report = client.export_report(&asset, &1_800_000_000, &1_900_000_000);
@@ -366,8 +457,26 @@ mod test {
         let sender = Address::generate(&env);
         let receiver = Address::generate(&env);
 
-        let e1 = make_event(&env, 0, &asset1, ComplianceAction::Approve, &sender, &receiver, 1_700_000_000, ReasonCode::None);
-        let e2 = make_event(&env, 0, &asset2, ComplianceAction::Reject, &sender, &receiver, 1_700_000_001, ReasonCode::KycExpired);
+        let e1 = make_event(
+            &env,
+            0,
+            &asset1,
+            ComplianceAction::Approve,
+            &sender,
+            &receiver,
+            1_700_000_000,
+            ReasonCode::None,
+        );
+        let e2 = make_event(
+            &env,
+            0,
+            &asset2,
+            ComplianceAction::Reject,
+            &sender,
+            &receiver,
+            1_700_000_001,
+            ReasonCode::KycExpired,
+        );
         client.log_event(&gateway, &e1);
         client.log_event(&gateway, &e2);
 
@@ -398,7 +507,16 @@ mod test {
         let sender = Address::generate(&env);
         let receiver = Address::generate(&env);
 
-        let event = make_event(&env, 0, &asset, ComplianceAction::Approve, &sender, &receiver, 1_700_000_000, ReasonCode::None);
+        let event = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Approve,
+            &sender,
+            &receiver,
+            1_700_000_000,
+            ReasonCode::None,
+        );
         client.log_event(&fake, &event);
     }
 
@@ -410,8 +528,26 @@ mod test {
         let sender = Address::generate(&env);
         let receiver = Address::generate(&env);
 
-        let e1 = make_event(&env, 0, &asset, ComplianceAction::Approve, &sender, &receiver, 1_700_000_000, ReasonCode::None);
-        let e2 = make_event(&env, 0, &asset, ComplianceAction::Reject, &sender, &receiver, 1_700_000_001, ReasonCode::KycExpired);
+        let e1 = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Approve,
+            &sender,
+            &receiver,
+            1_700_000_000,
+            ReasonCode::None,
+        );
+        let e2 = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Reject,
+            &sender,
+            &receiver,
+            1_700_000_001,
+            ReasonCode::KycExpired,
+        );
         client.log_event(&gateway, &e1);
         client.log_event(&gateway, &e2);
 

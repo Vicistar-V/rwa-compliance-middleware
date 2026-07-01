@@ -1,6 +1,6 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, String, Vec};
 use arcm_types::KycCredential;
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, String, Vec};
 
 #[contracttype]
 #[derive(Clone)]
@@ -48,8 +48,7 @@ impl CredentialRegistryContract {
             .get(&DataKey::CredentialWallets)
             .unwrap_or(vec![&env]);
 
-        let exists = (0..wallets.len())
-            .any(|i| wallets.get(i).unwrap() == wallet);
+        let exists = (0..wallets.len()).any(|i| wallets.get(i).unwrap() == wallet);
         if !exists {
             wallets.push_back(wallet);
             env.storage()
@@ -59,9 +58,7 @@ impl CredentialRegistryContract {
     }
 
     pub fn get_credential(env: Env, wallet: Address) -> Option<KycCredential> {
-        env.storage()
-            .instance()
-            .get(&DataKey::Credential(wallet))
+        env.storage().instance().get(&DataKey::Credential(wallet))
     }
 
     pub fn revoke_credential(env: Env, anchor: Address, wallet: Address, _reason: String) {
@@ -305,8 +302,7 @@ mod test {
             CredentialRegistryContract,
             (admin.clone(), anchor.clone(), oracle.clone()),
         );
-        let client =
-            CredentialRegistryContractClient::new(&env, &contract_id);
+        let client = CredentialRegistryContractClient::new(&env, &contract_id);
 
         let wallet1 = Address::generate(&env);
         let wallet2 = Address::generate(&env);

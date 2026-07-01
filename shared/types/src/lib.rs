@@ -208,13 +208,11 @@ impl ReasonCode {
     pub fn description(&self) -> &'static str {
         match self {
             ReasonCode::None => "No reason code",
-            ReasonCode::SanctionedJurisdiction => "Sender or receiver is in a sanctioned jurisdiction",
-            ReasonCode::ProhibitedJurisdiction => {
-                "Transfer involves a prohibited jurisdiction"
+            ReasonCode::SanctionedJurisdiction => {
+                "Sender or receiver is in a sanctioned jurisdiction"
             }
-            ReasonCode::AmountExceedsJurisdictionCap => {
-                "Transfer amount exceeds jurisdiction cap"
-            }
+            ReasonCode::ProhibitedJurisdiction => "Transfer involves a prohibited jurisdiction",
+            ReasonCode::AmountExceedsJurisdictionCap => "Transfer amount exceeds jurisdiction cap",
             ReasonCode::HoldingPeriodNotMet => "Minimum holding period not yet satisfied",
             ReasonCode::HoldingsCapExceeded => "Receiver would exceed maximum holdings cap",
             ReasonCode::InsufficientKycTier => "KYC tier is below the minimum required",
@@ -222,7 +220,9 @@ impl ReasonCode {
             ReasonCode::KycNotFound => "No KYC credential found for wallet",
             ReasonCode::SanctionedAddress => "Wallet address is under sanctions",
             ReasonCode::NotWhitelisted => "Receiver is not on the issuer whitelist",
-            ReasonCode::IssuerApprovalRequired => "Issuer pre-approval is required for this transfer",
+            ReasonCode::IssuerApprovalRequired => {
+                "Issuer pre-approval is required for this transfer"
+            }
             ReasonCode::AssetClassRestricted => "Asset class is restricted for this jurisdiction",
             ReasonCode::ContractPaused => "ARCM contract is currently paused",
         }
@@ -479,8 +479,12 @@ mod test {
             .description()
             .contains("sanctioned"));
         assert!(ReasonCode::KycExpired.description().contains("expired"));
-        assert!(ReasonCode::InsufficientKycTier.description().contains("KYC tier"));
-        assert!(ReasonCode::NotWhitelisted.description().contains("whitelist"));
+        assert!(ReasonCode::InsufficientKycTier
+            .description()
+            .contains("KYC tier"));
+        assert!(ReasonCode::NotWhitelisted
+            .description()
+            .contains("whitelist"));
         assert!(ReasonCode::ContractPaused.description().contains("paused"));
     }
 
@@ -713,10 +717,7 @@ mod test {
             audit_ref: make_country_string(&env, "AUDIT-002"),
         };
         assert_eq!(response.status, ApprovalStatus::Rejected);
-        assert_eq!(
-            response.reason_code,
-            ReasonCode::SanctionedJurisdiction
-        );
+        assert_eq!(response.reason_code, ReasonCode::SanctionedJurisdiction);
     }
 
     #[test]
@@ -789,10 +790,7 @@ mod test {
             one_hash(&env),
         );
         assert_eq!(event.action, ComplianceAction::Reject);
-        assert_eq!(
-            event.reason_code,
-            ReasonCode::ProhibitedJurisdiction
-        );
+        assert_eq!(event.reason_code, ReasonCode::ProhibitedJurisdiction);
         assert_eq!(event.jurisdiction_sender, make_country_string(&env, "IR"));
     }
 
@@ -801,7 +799,11 @@ mod test {
     #[test]
     fn test_issuer_rule_config() {
         let env = create_test_env();
-        let jurs = vec![&env, make_country_string(&env, "US"), make_country_string(&env, "DE")];
+        let jurs = vec![
+            &env,
+            make_country_string(&env, "US"),
+            make_country_string(&env, "DE"),
+        ];
 
         let config = IssuerRuleConfig {
             asset_class: AssetClass::RealEstate,
@@ -924,11 +926,7 @@ mod test {
     // --- LockType tests ---
     #[test]
     fn test_lock_type_variants() {
-        let types = [
-            LockType::Soft,
-            LockType::Hard,
-            LockType::PendingApproval,
-        ];
+        let types = [LockType::Soft, LockType::Hard, LockType::PendingApproval];
         assert_eq!(types.len(), 3);
     }
 

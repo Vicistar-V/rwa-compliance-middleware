@@ -354,8 +354,7 @@ impl GatewayContract {
             .instance()
             .get(&DataKey::RegisteredAssets)
             .unwrap_or(vec![&env]);
-        let exists = (0..existing.len())
-            .any(|i| existing.get(i).unwrap() == asset_contract);
+        let exists = (0..existing.len()).any(|i| existing.get(i).unwrap() == asset_contract);
         if !exists {
             let mut assets = existing;
             assets.push_back(asset_contract);
@@ -388,10 +387,7 @@ impl GatewayContract {
             .set(&DataKey::RegisteredAssets, &new_assets);
     }
 
-    pub fn get_asset_config(
-        env: Env,
-        asset_contract: Address,
-    ) -> IssuerRuleConfig {
+    pub fn get_asset_config(env: Env, asset_contract: Address) -> IssuerRuleConfig {
         env.storage()
             .instance()
             .get(&DataKey::AssetConfig(asset_contract))
@@ -526,35 +522,23 @@ mod test {
         let oracle_auth = Address::generate(&env);
         let authority = Address::generate(&env);
 
-        let geo_id = env.register(
-            CountryResolverContract,
-            (admin.clone(),),
-        );
+        let geo_id = env.register(CountryResolverContract, (admin.clone(),));
 
-        let jur_id = env.register(
-            JurisdictionEngineContract,
-            (admin.clone(),),
-        );
+        let jur_id = env.register(JurisdictionEngineContract, (admin.clone(),));
 
         let cred_id = env.register(
             CredentialRegistryContract,
             (admin.clone(), anchor.clone(), oracle_auth.clone()),
         );
 
-        let kyc_id = env.register(
-            KycOracleContract,
-            (admin.clone(), cred_id.clone()),
-        );
+        let kyc_id = env.register(KycOracleContract, (admin.clone(), cred_id.clone()));
 
         let enf_id = env.register(
             EnforcementEngineContract,
             (admin.clone(), authority.clone()),
         );
 
-        let audit_id = env.register(
-            AuditLedgerContract,
-            (admin.clone(), admin.clone()),
-        );
+        let audit_id = env.register(AuditLedgerContract, (admin.clone(), admin.clone()));
 
         let gateway_id = env.register(
             GatewayContract,
@@ -602,7 +586,8 @@ mod test {
             clawback_enabled: false,
         };
 
-        te.gateway_client.register_asset(&issuer, &asset, &AssetClass::Generic, &config);
+        te.gateway_client
+            .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
         let retrieved = te.gateway_client.get_asset_config(&asset);
         assert_eq!(retrieved.asset_class, AssetClass::Generic);
     }
@@ -621,7 +606,8 @@ mod test {
             clawback_enabled: false,
         };
 
-        te.gateway_client.register_asset(&issuer, &asset, &AssetClass::Generic, &config);
+        te.gateway_client
+            .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
         let _registered = te.gateway_client.get_asset_config(&asset);
         assert_eq!(_registered.asset_class, AssetClass::Generic);
 
@@ -644,10 +630,24 @@ mod test {
         geo_client.set_country(&te.admin, &receiver, &de_code);
 
         let jur_client = JurisdictionEngineContractClient::new(&te.env, &te.jur_id);
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "US"), &AssetClass::Generic, &make_rule(&te.env, "US", TransferPolicy::Open, 0));
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "DE"), &AssetClass::Generic, &make_rule(&te.env, "DE", TransferPolicy::Open, 0));
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "US"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "US", TransferPolicy::Open, 0),
+        );
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "DE"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "DE", TransferPolicy::Open, 0),
+        );
 
-        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
+        let jurs = vec![
+            &te.env,
+            make_country(&te.env, "US"),
+            make_country(&te.env, "DE"),
+        ];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -655,9 +655,12 @@ mod test {
             require_whitelist: false,
             clawback_enabled: false,
         };
-        te.gateway_client.register_asset(&issuer, &asset, &AssetClass::Generic, &config);
+        te.gateway_client
+            .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response = te.gateway_client.approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response =
+            te.gateway_client
+                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Approved);
         assert!(!response.audit_ref.is_empty());
     }
@@ -678,10 +681,24 @@ mod test {
         geo_client.set_country(&te.admin, &receiver, &de_code);
 
         let jur_client = JurisdictionEngineContractClient::new(&te.env, &te.jur_id);
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "US"), &AssetClass::Generic, &make_rule(&te.env, "US", TransferPolicy::Open, 3));
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "DE"), &AssetClass::Generic, &make_rule(&te.env, "DE", TransferPolicy::Open, 3));
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "US"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "US", TransferPolicy::Open, 3),
+        );
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "DE"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "DE", TransferPolicy::Open, 3),
+        );
 
-        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
+        let jurs = vec![
+            &te.env,
+            make_country(&te.env, "US"),
+            make_country(&te.env, "DE"),
+        ];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -689,9 +706,12 @@ mod test {
             require_whitelist: false,
             clawback_enabled: false,
         };
-        te.gateway_client.register_asset(&issuer, &asset, &AssetClass::Generic, &config);
+        te.gateway_client
+            .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response = te.gateway_client.approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response =
+            te.gateway_client
+                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Rejected);
         assert_eq!(response.reason_code, ReasonCode::InsufficientKycTier);
     }
@@ -709,8 +729,18 @@ mod test {
         geo_client.set_country(&te.admin, &receiver, &make_country(&te.env, "US"));
 
         let jur_client = JurisdictionEngineContractClient::new(&te.env, &te.jur_id);
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "IR"), &AssetClass::Generic, &make_rule(&te.env, "IR", TransferPolicy::Sanctioned, 1));
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "US"), &AssetClass::Generic, &make_rule(&te.env, "US", TransferPolicy::Open, 1));
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "IR"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "IR", TransferPolicy::Sanctioned, 1),
+        );
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "US"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "US", TransferPolicy::Open, 1),
+        );
 
         let jurs = vec![&te.env, make_country(&te.env, "US")];
         let config = IssuerRuleConfig {
@@ -720,9 +750,12 @@ mod test {
             require_whitelist: false,
             clawback_enabled: false,
         };
-        te.gateway_client.register_asset(&issuer, &asset, &AssetClass::Generic, &config);
+        te.gateway_client
+            .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response = te.gateway_client.approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response =
+            te.gateway_client
+                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Rejected);
         assert_eq!(response.reason_code, ReasonCode::SanctionedJurisdiction);
     }
@@ -740,8 +773,18 @@ mod test {
         geo_client.set_country(&te.admin, &receiver, &make_country(&te.env, "DE"));
 
         let jur_client = JurisdictionEngineContractClient::new(&te.env, &te.jur_id);
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "US"), &AssetClass::Generic, &make_rule(&te.env, "US", TransferPolicy::Open, 1));
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "DE"), &AssetClass::Generic, &make_rule(&te.env, "DE", TransferPolicy::Open, 1));
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "US"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "US", TransferPolicy::Open, 1),
+        );
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "DE"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "DE", TransferPolicy::Open, 1),
+        );
 
         let cred_client = CredentialRegistryContractClient::new(&te.env, &te.cred_id);
         let wallet = receiver.clone();
@@ -758,7 +801,11 @@ mod test {
         };
         cred_client.submit_credential(&te.anchor, &kyc_cred);
 
-        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
+        let jurs = vec![
+            &te.env,
+            make_country(&te.env, "US"),
+            make_country(&te.env, "DE"),
+        ];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -766,9 +813,12 @@ mod test {
             require_whitelist: false,
             clawback_enabled: false,
         };
-        te.gateway_client.register_asset(&issuer, &asset, &AssetClass::Generic, &config);
+        te.gateway_client
+            .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response = te.gateway_client.approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response =
+            te.gateway_client
+                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Rejected);
         assert_eq!(response.reason_code, ReasonCode::KycExpired);
     }
@@ -786,10 +836,24 @@ mod test {
         geo_client.set_country(&te.admin, &receiver, &make_country(&te.env, "DE"));
 
         let jur_client = JurisdictionEngineContractClient::new(&te.env, &te.jur_id);
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "US"), &AssetClass::Generic, &make_rule(&te.env, "US", TransferPolicy::Open, 0));
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "DE"), &AssetClass::Generic, &make_rule(&te.env, "DE", TransferPolicy::Open, 0));
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "US"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "US", TransferPolicy::Open, 0),
+        );
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "DE"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "DE", TransferPolicy::Open, 0),
+        );
 
-        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
+        let jurs = vec![
+            &te.env,
+            make_country(&te.env, "US"),
+            make_country(&te.env, "DE"),
+        ];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -797,9 +861,11 @@ mod test {
             require_whitelist: false,
             clawback_enabled: false,
         };
-        te.gateway_client.register_asset(&issuer, &asset, &AssetClass::Generic, &config);
+        te.gateway_client
+            .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        te.gateway_client.approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        te.gateway_client
+            .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
 
         let audit_client = AuditLedgerContractClient::new(&te.env, &te.audit_id);
         let events = audit_client.query_events(&asset, &1, &10);
@@ -822,7 +888,8 @@ mod test {
             clawback_enabled: false,
         };
 
-        te.gateway_client.register_asset(&issuer, &asset, &AssetClass::Generic, &config);
+        te.gateway_client
+            .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
         te.gateway_client.deregister_asset(&attacker, &asset);
     }
 
@@ -839,10 +906,24 @@ mod test {
         geo_client.set_country(&te.admin, &receiver, &make_country(&te.env, "DE"));
 
         let jur_client = JurisdictionEngineContractClient::new(&te.env, &te.jur_id);
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "US"), &AssetClass::Generic, &make_rule(&te.env, "US", TransferPolicy::Open, 1));
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "DE"), &AssetClass::Generic, &make_rule(&te.env, "DE", TransferPolicy::Open, 1));
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "US"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "US", TransferPolicy::Open, 1),
+        );
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "DE"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "DE", TransferPolicy::Open, 1),
+        );
 
-        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
+        let jurs = vec![
+            &te.env,
+            make_country(&te.env, "US"),
+            make_country(&te.env, "DE"),
+        ];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -850,9 +931,12 @@ mod test {
             require_whitelist: true,
             clawback_enabled: false,
         };
-        te.gateway_client.register_asset(&issuer, &asset, &AssetClass::Generic, &config);
+        te.gateway_client
+            .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response = te.gateway_client.approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response =
+            te.gateway_client
+                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Rejected);
         assert_eq!(response.reason_code, ReasonCode::NotWhitelisted);
     }
@@ -870,8 +954,18 @@ mod test {
         geo_client.set_country(&te.admin, &receiver, &make_country(&te.env, "DE"));
 
         let jur_client = JurisdictionEngineContractClient::new(&te.env, &te.jur_id);
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "US"), &AssetClass::Generic, &make_rule(&te.env, "US", TransferPolicy::Open, 1));
-        jur_client.set_rule(&te.admin, &make_country(&te.env, "DE"), &AssetClass::Generic, &make_rule(&te.env, "DE", TransferPolicy::Open, 1));
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "US"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "US", TransferPolicy::Open, 1),
+        );
+        jur_client.set_rule(
+            &te.admin,
+            &make_country(&te.env, "DE"),
+            &AssetClass::Generic,
+            &make_rule(&te.env, "DE", TransferPolicy::Open, 1),
+        );
 
         let cred_client = CredentialRegistryContractClient::new(&te.env, &te.cred_id);
         let kyc_cred = arcm_types::KycCredential {
@@ -887,7 +981,11 @@ mod test {
         };
         cred_client.submit_credential(&te.anchor, &kyc_cred);
 
-        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
+        let jurs = vec![
+            &te.env,
+            make_country(&te.env, "US"),
+            make_country(&te.env, "DE"),
+        ];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -895,9 +993,12 @@ mod test {
             require_whitelist: false,
             clawback_enabled: false,
         };
-        te.gateway_client.register_asset(&issuer, &asset, &AssetClass::Generic, &config);
+        te.gateway_client
+            .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response = te.gateway_client.approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response =
+            te.gateway_client
+                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Approved);
         assert!(!response.audit_ref.is_empty());
 

@@ -65,10 +65,7 @@ mod test {
         (env, admin)
     }
 
-    fn deploy<'a>(
-        env: &'a Env,
-        admin: &Address,
-    ) -> CountryResolverContractClient<'a> {
+    fn deploy<'a>(env: &'a Env, admin: &Address) -> CountryResolverContractClient<'a> {
         let contract_id = env.register(CountryResolverContract, (admin.clone(),));
         CountryResolverContractClient::new(env, &contract_id)
     }

@@ -39,11 +39,7 @@ impl JurisdictionEngineContract {
             .set(&DataKey::NextProposalId, &1u64);
     }
 
-    pub fn get_rule(
-        env: Env,
-        country_code: String,
-        asset_class: AssetClass,
-    ) -> JurisdictionRule {
+    pub fn get_rule(env: Env, country_code: String, asset_class: AssetClass) -> JurisdictionRule {
         env.storage()
             .instance()
             .get(&DataKey::CountryRule(country_code, asset_class))
@@ -128,10 +124,7 @@ impl JurisdictionEngineContract {
             panic!("timelock not yet expired");
         }
 
-        let key = DataKey::CountryRule(
-            proposal.country_code.clone(),
-            proposal.asset_class.clone(),
-        );
+        let key = DataKey::CountryRule(proposal.country_code.clone(), proposal.asset_class.clone());
         env.storage().instance().set(&key, &proposal.new_rule);
 
         proposal.executed = true;
@@ -151,11 +144,7 @@ impl JurisdictionEngineContract {
         for i in 0..keys.len() {
             let (cc, ac) = keys.get(i).unwrap();
             if cc == country_code {
-                if let Some(rule) = env
-                    .storage()
-                    .instance()
-                    .get(&DataKey::CountryRule(cc, ac))
-                {
+                if let Some(rule) = env.storage().instance().get(&DataKey::CountryRule(cc, ac)) {
                     result.push_back(rule);
                 }
             }
@@ -166,10 +155,7 @@ impl JurisdictionEngineContract {
     pub fn is_sanctioned(env: Env, country_code: String) -> bool {
         env.storage()
             .instance()
-            .get(&DataKey::CountryRule(
-                country_code,
-                AssetClass::Generic,
-            ))
+            .get(&DataKey::CountryRule(country_code, AssetClass::Generic))
             .is_some_and(|rule: JurisdictionRule| {
                 rule.transfer_policy == TransferPolicy::Sanctioned
             })
@@ -232,12 +218,8 @@ mod test {
         (env, admin)
     }
 
-    fn deploy<'a>(
-        env: &'a Env,
-        admin: &Address,
-    ) -> JurisdictionEngineContractClient<'a> {
-        let contract_id =
-            env.register(JurisdictionEngineContract, (admin.clone(),));
+    fn deploy<'a>(env: &'a Env, admin: &Address) -> JurisdictionEngineContractClient<'a> {
+        let contract_id = env.register(JurisdictionEngineContract, (admin.clone(),));
         JurisdictionEngineContractClient::new(env, &contract_id)
     }
 
@@ -247,13 +229,37 @@ mod test {
     fn test_evaluate_sanctioned_sender() {
         let env = Env::default();
         let sanctioned = make_rule(
-            &env, "IR", TransferPolicy::Sanctioned, 1, None, None, None, false, false,
+            &env,
+            "IR",
+            TransferPolicy::Sanctioned,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let open = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let decision = evaluate_transfer(
-            &sanctioned, &open, 1000, 1, 1, 9999999999, 1_700_000_000, None, None,
+            &sanctioned,
+            &open,
+            1000,
+            1,
+            1,
+            9999999999,
+            1_700_000_000,
+            None,
+            None,
         );
         assert!(decision.is_reject());
         assert_eq!(
@@ -266,13 +272,37 @@ mod test {
     fn test_evaluate_sanctioned_receiver() {
         let env = Env::default();
         let open = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let sanctioned = make_rule(
-            &env, "KP", TransferPolicy::Sanctioned, 1, None, None, None, false, false,
+            &env,
+            "KP",
+            TransferPolicy::Sanctioned,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let decision = evaluate_transfer(
-            &open, &sanctioned, 1000, 1, 1, 9999999999, 1_700_000_000, None, None,
+            &open,
+            &sanctioned,
+            1000,
+            1,
+            1,
+            9999999999,
+            1_700_000_000,
+            None,
+            None,
         );
         assert!(decision.is_reject());
         assert_eq!(
@@ -285,13 +315,37 @@ mod test {
     fn test_evaluate_prohibited_jurisdiction() {
         let env = Env::default();
         let prohibited = make_rule(
-            &env, "CN", TransferPolicy::Prohibited, 1, None, None, None, false, false,
+            &env,
+            "CN",
+            TransferPolicy::Prohibited,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let open = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let decision = evaluate_transfer(
-            &prohibited, &open, 1000, 1, 1, 9999999999, 1_700_000_000, None, None,
+            &prohibited,
+            &open,
+            1000,
+            1,
+            1,
+            9999999999,
+            1_700_000_000,
+            None,
+            None,
         );
         assert!(decision.is_reject());
         assert_eq!(
@@ -304,13 +358,37 @@ mod test {
     fn test_evaluate_kyc_tier_too_low() {
         let env = Env::default();
         let sender = make_rule(
-            &env, "US", TransferPolicy::Restricted, 2, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Restricted,
+            2,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let receiver = make_rule(
-            &env, "DE", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "DE",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let decision = evaluate_transfer(
-            &sender, &receiver, 1000, 1, 1, 9999999999, 1_700_000_000, None, None,
+            &sender,
+            &receiver,
+            1000,
+            1,
+            1,
+            9999999999,
+            1_700_000_000,
+            None,
+            None,
         );
         assert!(decision.is_reject());
         assert_eq!(
@@ -323,10 +401,26 @@ mod test {
     fn test_evaluate_kyc_expired_lock() {
         let env = Env::default();
         let sender = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let receiver = make_rule(
-            &env, "DE", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "DE",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let decision = evaluate_transfer(
             &sender,
@@ -347,10 +441,26 @@ mod test {
     fn test_evaluate_kyc_expired_clawback() {
         let env = Env::default();
         let sender = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let receiver = make_rule(
-            &env, "DE", TransferPolicy::Open, 1, None, None, None, false, true,
+            &env,
+            "DE",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            true,
         );
         let decision = evaluate_transfer(
             &sender,
@@ -371,13 +481,37 @@ mod test {
     fn test_evaluate_amount_exceeds_cap() {
         let env = Env::default();
         let sender = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let receiver = make_rule(
-            &env, "DE", TransferPolicy::Open, 1, Some(500), None, None, false, false,
+            &env,
+            "DE",
+            TransferPolicy::Open,
+            1,
+            Some(500),
+            None,
+            None,
+            false,
+            false,
         );
         let decision = evaluate_transfer(
-            &sender, &receiver, 1000, 1, 1, 9999999999, 1_700_000_000, None, None,
+            &sender,
+            &receiver,
+            1000,
+            1,
+            1,
+            9999999999,
+            1_700_000_000,
+            None,
+            None,
         );
         assert!(decision.is_reject());
         assert_eq!(
@@ -390,10 +524,26 @@ mod test {
     fn test_evaluate_holding_period_not_met() {
         let env = Env::default();
         let sender = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, Some(1000), false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            Some(1000),
+            false,
+            false,
         );
         let receiver = make_rule(
-            &env, "DE", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "DE",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let decision = evaluate_transfer(
             &sender,
@@ -417,10 +567,26 @@ mod test {
     fn test_evaluate_holdings_cap_exceeded() {
         let env = Env::default();
         let sender = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let receiver = make_rule(
-            &env, "DE", TransferPolicy::Open, 1, None, Some(5000), None, false, false,
+            &env,
+            "DE",
+            TransferPolicy::Open,
+            1,
+            None,
+            Some(5000),
+            None,
+            false,
+            false,
         );
         let decision = evaluate_transfer(
             &sender,
@@ -444,13 +610,37 @@ mod test {
     fn test_evaluate_issuer_approval_required() {
         let env = Env::default();
         let sender = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let receiver = make_rule(
-            &env, "DE", TransferPolicy::Open, 1, None, None, None, true, false,
+            &env,
+            "DE",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            true,
+            false,
         );
         let decision = evaluate_transfer(
-            &sender, &receiver, 1000, 1, 1, 9999999999, 1_700_000_000, None, None,
+            &sender,
+            &receiver,
+            1000,
+            1,
+            1,
+            9999999999,
+            1_700_000_000,
+            None,
+            None,
         );
         assert!(decision.is_pending());
     }
@@ -459,10 +649,26 @@ mod test {
     fn test_evaluate_all_checks_pass() {
         let env = Env::default();
         let sender = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let receiver = make_rule(
-            &env, "DE", TransferPolicy::Open, 1, Some(5000), Some(10000), None, false, false,
+            &env,
+            "DE",
+            TransferPolicy::Open,
+            1,
+            Some(5000),
+            Some(10000),
+            None,
+            false,
+            false,
         );
         let decision = evaluate_transfer(
             &sender,
@@ -486,7 +692,15 @@ mod test {
         let client = deploy(&env, &admin);
         let country = make_country(&env, "US");
         let rule = make_rule(
-            &env, "US", TransferPolicy::AccreditedOnly, 2, Some(1_000_000), None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::AccreditedOnly,
+            2,
+            Some(1_000_000),
+            None,
+            None,
+            false,
+            false,
         );
 
         client.set_rule(&admin, &country, &AssetClass::Generic, &rule);
@@ -512,25 +726,41 @@ mod test {
         let admin = Address::generate(&env);
         let proposer = Address::generate(&env);
 
-        let contract_id =
-            env.register(JurisdictionEngineContract, (admin.clone(),));
-        let client =
-            JurisdictionEngineContractClient::new(&env, &contract_id);
+        let contract_id = env.register(JurisdictionEngineContract, (admin.clone(),));
+        let client = JurisdictionEngineContractClient::new(&env, &contract_id);
 
         let country = make_country(&env, "US");
         let old_rule = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let new_rule = make_rule(
-            &env, "US", TransferPolicy::AccreditedOnly, 2, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::AccreditedOnly,
+            2,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
 
         client.set_rule(&admin, &country, &AssetClass::Generic, &old_rule);
 
-        let proposal_id = client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
+        let proposal_id =
+            client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
         assert_eq!(proposal_id, 1);
 
-        env.ledger().set_timestamp(1_700_000_000 + TIMELOCK_SECONDS + 1);
+        env.ledger()
+            .set_timestamp(1_700_000_000 + TIMELOCK_SECONDS + 1);
         client.execute_rule_update(&proposal_id);
 
         let retrieved = client.get_rule(&country, &AssetClass::Generic);
@@ -547,21 +777,36 @@ mod test {
         let admin = Address::generate(&env);
         let proposer = Address::generate(&env);
 
-        let contract_id =
-            env.register(JurisdictionEngineContract, (admin.clone(),));
-        let client =
-            JurisdictionEngineContractClient::new(&env, &contract_id);
+        let contract_id = env.register(JurisdictionEngineContract, (admin.clone(),));
+        let client = JurisdictionEngineContractClient::new(&env, &contract_id);
 
         let country = make_country(&env, "US");
         let old_rule = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let new_rule = make_rule(
-            &env, "US", TransferPolicy::AccreditedOnly, 2, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::AccreditedOnly,
+            2,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
 
         client.set_rule(&admin, &country, &AssetClass::Generic, &old_rule);
-        let proposal_id = client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
+        let proposal_id =
+            client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
 
         env.ledger().set_timestamp(1_700_000_000 + 1);
         client.execute_rule_update(&proposal_id);
@@ -576,23 +821,39 @@ mod test {
         let admin = Address::generate(&env);
         let proposer = Address::generate(&env);
 
-        let contract_id =
-            env.register(JurisdictionEngineContract, (admin.clone(),));
-        let client =
-            JurisdictionEngineContractClient::new(&env, &contract_id);
+        let contract_id = env.register(JurisdictionEngineContract, (admin.clone(),));
+        let client = JurisdictionEngineContractClient::new(&env, &contract_id);
 
         let country = make_country(&env, "US");
         let old_rule = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let new_rule = make_rule(
-            &env, "US", TransferPolicy::AccreditedOnly, 2, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::AccreditedOnly,
+            2,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
 
         client.set_rule(&admin, &country, &AssetClass::Generic, &old_rule);
-        let proposal_id = client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
+        let proposal_id =
+            client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
 
-        env.ledger().set_timestamp(1_700_000_000 + TIMELOCK_SECONDS + 1);
+        env.ledger()
+            .set_timestamp(1_700_000_000 + TIMELOCK_SECONDS + 1);
         client.execute_rule_update(&proposal_id);
         client.execute_rule_update(&proposal_id);
     }
@@ -605,13 +866,37 @@ mod test {
         let de = make_country(&env, "DE");
 
         let rule_us = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         let rule_de = make_rule(
-            &env, "DE", TransferPolicy::Restricted, 2, Some(5000), None, None, false, false,
+            &env,
+            "DE",
+            TransferPolicy::Restricted,
+            2,
+            Some(5000),
+            None,
+            None,
+            false,
+            false,
         );
         let rule_us_equity = make_rule(
-            &env, "US", TransferPolicy::AccreditedOnly, 2, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::AccreditedOnly,
+            2,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
 
         client.set_rule(&admin, &us, &AssetClass::Generic, &rule_us);
@@ -633,7 +918,15 @@ mod test {
         let us = make_country(&env, "US");
 
         let sanctioned_rule = make_rule(
-            &env, "IR", TransferPolicy::Sanctioned, 1, None, None, None, false, false,
+            &env,
+            "IR",
+            TransferPolicy::Sanctioned,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
 
         client.set_rule(&admin, &ir, &AssetClass::Generic, &sanctioned_rule);
@@ -658,7 +951,15 @@ mod test {
 
         let country = make_country(&env, "US");
         let rule = make_rule(
-            &env, "US", TransferPolicy::Open, 1, None, None, None, false, false,
+            &env,
+            "US",
+            TransferPolicy::Open,
+            1,
+            None,
+            None,
+            None,
+            false,
+            false,
         );
         client.set_rule(&attacker, &country, &AssetClass::Generic, &rule);
     }

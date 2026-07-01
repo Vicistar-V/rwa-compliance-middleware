@@ -167,10 +167,7 @@ mod test {
             CredentialRegistryContract,
             (admin.clone(), anchor.clone(), oracle_auth.clone()),
         );
-        let oracle_id = env.register(
-            KycOracleContract,
-            (admin.clone(), registry_id.clone()),
-        );
+        let oracle_id = env.register(KycOracleContract, (admin.clone(), registry_id.clone()));
         KycOracleContractClient::new(env, &oracle_id)
     }
 
@@ -212,12 +209,8 @@ mod test {
             (admin.clone(), anchor.clone(), oracle_auth.clone()),
         );
 
-        let oracle_id = env.register(
-            KycOracleContract,
-            (admin.clone(), registry_id.clone()),
-        );
-        let oracle_client =
-            KycOracleContractClient::new(&env, &oracle_id);
+        let oracle_id = env.register(KycOracleContract, (admin.clone(), registry_id.clone()));
+        let oracle_client = KycOracleContractClient::new(&env, &oracle_id);
 
         let wallet = Address::generate(&env);
         let cred = make_credential(&env, &wallet, &anchor, 2, 1_700_000_000 + 100, false);
@@ -325,12 +318,8 @@ mod test {
             (admin.clone(), anchor.clone(), oracle_auth.clone()),
         );
 
-        let oracle_id = env.register(
-            KycOracleContract,
-            (admin.clone(), registry_id.clone()),
-        );
-        let oracle_client =
-            KycOracleContractClient::new(&env, &oracle_id);
+        let oracle_id = env.register(KycOracleContract, (admin.clone(), registry_id.clone()));
+        let oracle_client = KycOracleContractClient::new(&env, &oracle_id);
 
         let wallet = Address::generate(&env);
 

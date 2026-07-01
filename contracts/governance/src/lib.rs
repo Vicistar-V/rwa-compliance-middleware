@@ -1,6 +1,6 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, Vec};
 use arcm_types::{AssetClass, JurisdictionRule};
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, Vec};
 
 const DEFAULT_QUORUM_THRESHOLD: u32 = 3;
 const DEFAULT_TIMELOCK_SECONDS: u64 = 172_800;
@@ -88,12 +88,7 @@ impl RuleGovernanceContract {
         id
     }
 
-    pub fn vote_on_proposal(
-        env: Env,
-        governor: Address,
-        proposal_id: u64,
-        approve: bool,
-    ) {
+    pub fn vote_on_proposal(env: Env, governor: Address, proposal_id: u64, approve: bool) {
         governor.require_auth();
         Self::check_governor(&env, &governor);
 
@@ -210,8 +205,7 @@ impl RuleGovernanceContract {
             .get(&DataKey::Governors)
             .unwrap_or(vec![&env]);
 
-        let exists = (0..governors.len())
-            .any(|i| governors.get(i).unwrap() == governor);
+        let exists = (0..governors.len()).any(|i| governors.get(i).unwrap() == governor);
         if !exists {
             governors.push_back(governor);
             env.storage()
@@ -253,8 +247,7 @@ impl RuleGovernanceContract {
             .instance()
             .get(&DataKey::Governors)
             .unwrap_or(vec![env]);
-        let is_governor = (0..governors.len())
-            .any(|i| governors.get(i).unwrap() == *governor);
+        let is_governor = (0..governors.len()).any(|i| governors.get(i).unwrap() == *governor);
         if !is_governor {
             panic!("not a governor");
         }
@@ -294,14 +287,8 @@ mod test {
         (env, admin)
     }
 
-    fn deploy<'a>(
-        env: &'a Env,
-        admin: &Address,
-    ) -> RuleGovernanceContractClient<'a> {
-        let contract_id = env.register(
-            RuleGovernanceContract,
-            (admin.clone(),),
-        );
+    fn deploy<'a>(env: &'a Env, admin: &Address) -> RuleGovernanceContractClient<'a> {
+        let contract_id = env.register(RuleGovernanceContract, (admin.clone(),));
         RuleGovernanceContractClient::new(env, &contract_id)
     }
 
@@ -365,10 +352,7 @@ mod test {
         env.ledger().set_timestamp(1_700_000_000);
         let admin = Address::generate(&env);
 
-        let contract_id = env.register(
-            RuleGovernanceContract,
-            (admin.clone(),),
-        );
+        let contract_id = env.register(RuleGovernanceContract, (admin.clone(),));
         let client = RuleGovernanceContractClient::new(&env, &contract_id);
 
         let proposer = Address::generate(&env);
@@ -387,7 +371,8 @@ mod test {
         client.vote_on_proposal(&governor2, &id, &true);
         client.vote_on_proposal(&governor3, &id, &true);
 
-        env.ledger().set_timestamp(1_700_000_000 + DEFAULT_TIMELOCK_SECONDS + 1);
+        env.ledger()
+            .set_timestamp(1_700_000_000 + DEFAULT_TIMELOCK_SECONDS + 1);
         client.execute_proposal(&id);
 
         let proposal = client.get_proposal(&id);
@@ -447,10 +432,7 @@ mod test {
         env.ledger().set_timestamp(1_700_000_000);
         let admin = Address::generate(&env);
 
-        let contract_id = env.register(
-            RuleGovernanceContract,
-            (admin.clone(),),
-        );
+        let contract_id = env.register(RuleGovernanceContract, (admin.clone(),));
         let client = RuleGovernanceContractClient::new(&env, &contract_id);
 
         let proposer = Address::generate(&env);
@@ -473,10 +455,7 @@ mod test {
         env.ledger().set_timestamp(1_700_000_000);
         let admin = Address::generate(&env);
 
-        let contract_id = env.register(
-            RuleGovernanceContract,
-            (admin.clone(),),
-        );
+        let contract_id = env.register(RuleGovernanceContract, (admin.clone(),));
         let client = RuleGovernanceContractClient::new(&env, &contract_id);
 
         let proposer = Address::generate(&env);
@@ -488,7 +467,8 @@ mod test {
         let id = client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &rule);
         client.vote_on_proposal(&governor, &id, &true);
 
-        env.ledger().set_timestamp(1_700_000_000 + DEFAULT_TIMELOCK_SECONDS + 1);
+        env.ledger()
+            .set_timestamp(1_700_000_000 + DEFAULT_TIMELOCK_SECONDS + 1);
         client.execute_proposal(&id);
     }
 
