@@ -353,4 +353,13 @@ mod test {
         let status = oracle_client.get_kyc_status(&wallet).unwrap();
         assert!(status.is_sanctioned);
     }
+
+    #[test]
+    fn test_batch_check_sanctions_empty() {
+        let (env, _admin, _anchor, _oracle_auth) = setup_env();
+        let client = deploy(&env, &_admin, &_anchor, &_oracle_auth);
+        let empty: Vec<Address> = vec![&env];
+        let results = client.batch_check_sanctions(&empty);
+        assert_eq!(results.len(), 0);
+    }
 }
