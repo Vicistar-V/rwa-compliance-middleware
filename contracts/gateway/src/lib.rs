@@ -2,8 +2,8 @@
 use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, BytesN, Env, String, Vec};
 
 use arcm_types::{
-    evaluate_transfer, ApprovalResponse, ApprovalStatus, AssetClass, ComplianceAction,
-    ComplianceDecision, ComplianceEvent, IssuerRuleConfig, ReasonCode,
+    evaluate_transfer, ApprovalResponse, ApprovalStatus, AssetClass, ComplianceAction, ComplianceDecision,
+    ComplianceEvent, IssuerRuleConfig, ReasonCode,
 };
 
 fn u64_to_string(env: &Env, n: u64) -> String {
@@ -66,21 +66,15 @@ impl GatewayContract {
         env.storage()
             .instance()
             .set(&DataKey::JurisdictionEngine, &jurisdiction_engine);
-        env.storage()
-            .instance()
-            .set(&DataKey::KycOracle, &kyc_oracle);
+        env.storage().instance().set(&DataKey::KycOracle, &kyc_oracle);
         env.storage()
             .instance()
             .set(&DataKey::EnforcementEngine, &enforcement_engine);
         env.storage()
             .instance()
             .set(&DataKey::EnforcementAuthority, &enforcement_authority);
-        env.storage()
-            .instance()
-            .set(&DataKey::AuditLedger, &audit_ledger);
-        env.storage()
-            .instance()
-            .set(&DataKey::GeoResolver, &geo_resolver);
+        env.storage().instance().set(&DataKey::AuditLedger, &audit_ledger);
+        env.storage().instance().set(&DataKey::GeoResolver, &geo_resolver);
     }
 
     /// Evaluates a transfer for compliance by resolving sender/receiver countries, checking KYC,
@@ -271,14 +265,7 @@ impl GatewayContract {
                     .instance()
                     .get(&DataKey::EnforcementAuthority)
                     .expect("enforcement authority not set");
-                enf_client.execute_clawback(
-                    &enf_authority,
-                    &asset_contract,
-                    &receiver,
-                    &amount,
-                    code,
-                    &sender,
-                );
+                enf_client.execute_clawback(&enf_authority, &asset_contract, &receiver, &amount, code, &sender);
 
                 Self::log_and_return(
                     &env,
@@ -364,9 +351,7 @@ impl GatewayContract {
         if !exists {
             let mut assets = existing;
             assets.push_back(asset_contract);
-            env.storage()
-                .instance()
-                .set(&DataKey::RegisteredAssets, &assets);
+            env.storage().instance().set(&DataKey::RegisteredAssets, &assets);
         }
     }
 
@@ -390,9 +375,7 @@ impl GatewayContract {
                 new_assets.push_back(a);
             }
         }
-        env.storage()
-            .instance()
-            .set(&DataKey::RegisteredAssets, &new_assets);
+        env.storage().instance().set(&DataKey::RegisteredAssets, &new_assets);
     }
 
     /// Returns the `IssuerRuleConfig` for a registered asset contract.
@@ -424,11 +407,7 @@ impl GatewayContract {
             .instance()
             .get(&DataKey::AuditLedger)
             .expect("audit not set");
-        let admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("admin not set");
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("admin not set");
         let audit_client = AuditLedgerContractClient::new(env, &audit);
 
         let action = match response.status {
@@ -485,12 +464,7 @@ mod test {
         code.into_val(env)
     }
 
-    fn make_rule(
-        env: &Env,
-        country: &str,
-        policy: TransferPolicy,
-        min_kyc: u32,
-    ) -> JurisdictionRule {
+    fn make_rule(env: &Env, country: &str, policy: TransferPolicy, min_kyc: u32) -> JurisdictionRule {
         JurisdictionRule::new(
             make_country(env, country),
             AssetClass::Generic,
@@ -543,10 +517,7 @@ mod test {
 
         let kyc_id = env.register(KycOracleContract, (admin.clone(), cred_id.clone()));
 
-        let enf_id = env.register(
-            EnforcementEngineContract,
-            (admin.clone(), authority.clone()),
-        );
+        let enf_id = env.register(EnforcementEngineContract, (admin.clone(), authority.clone()));
 
         let audit_id = env.register(AuditLedgerContract, (admin.clone(), admin.clone()));
 
@@ -653,11 +624,7 @@ mod test {
             &make_rule(&te.env, "DE", TransferPolicy::Open, 0),
         );
 
-        let jurs = vec![
-            &te.env,
-            make_country(&te.env, "US"),
-            make_country(&te.env, "DE"),
-        ];
+        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -668,9 +635,9 @@ mod test {
         te.gateway_client
             .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response =
-            te.gateway_client
-                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response = te
+            .gateway_client
+            .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Approved);
         assert!(!response.audit_ref.is_empty());
     }
@@ -704,11 +671,7 @@ mod test {
             &make_rule(&te.env, "DE", TransferPolicy::Open, 3),
         );
 
-        let jurs = vec![
-            &te.env,
-            make_country(&te.env, "US"),
-            make_country(&te.env, "DE"),
-        ];
+        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -719,9 +682,9 @@ mod test {
         te.gateway_client
             .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response =
-            te.gateway_client
-                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response = te
+            .gateway_client
+            .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Rejected);
         assert_eq!(response.reason_code, ReasonCode::InsufficientKycTier);
     }
@@ -763,9 +726,9 @@ mod test {
         te.gateway_client
             .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response =
-            te.gateway_client
-                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response = te
+            .gateway_client
+            .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Rejected);
         assert_eq!(response.reason_code, ReasonCode::SanctionedJurisdiction);
     }
@@ -811,11 +774,7 @@ mod test {
         };
         cred_client.submit_credential(&te.anchor, &kyc_cred);
 
-        let jurs = vec![
-            &te.env,
-            make_country(&te.env, "US"),
-            make_country(&te.env, "DE"),
-        ];
+        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -826,9 +785,9 @@ mod test {
         te.gateway_client
             .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response =
-            te.gateway_client
-                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response = te
+            .gateway_client
+            .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Rejected);
         assert_eq!(response.reason_code, ReasonCode::KycExpired);
     }
@@ -859,11 +818,7 @@ mod test {
             &make_rule(&te.env, "DE", TransferPolicy::Open, 0),
         );
 
-        let jurs = vec![
-            &te.env,
-            make_country(&te.env, "US"),
-            make_country(&te.env, "DE"),
-        ];
+        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -929,11 +884,7 @@ mod test {
             &make_rule(&te.env, "DE", TransferPolicy::Open, 1),
         );
 
-        let jurs = vec![
-            &te.env,
-            make_country(&te.env, "US"),
-            make_country(&te.env, "DE"),
-        ];
+        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -944,9 +895,9 @@ mod test {
         te.gateway_client
             .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response =
-            te.gateway_client
-                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response = te
+            .gateway_client
+            .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Rejected);
         assert_eq!(response.reason_code, ReasonCode::NotWhitelisted);
     }
@@ -991,11 +942,7 @@ mod test {
         };
         cred_client.submit_credential(&te.anchor, &kyc_cred);
 
-        let jurs = vec![
-            &te.env,
-            make_country(&te.env, "US"),
-            make_country(&te.env, "DE"),
-        ];
+        let jurs = vec![&te.env, make_country(&te.env, "US"), make_country(&te.env, "DE")];
         let config = IssuerRuleConfig {
             asset_class: AssetClass::Generic,
             jurisdictions: jurs,
@@ -1006,9 +953,9 @@ mod test {
         te.gateway_client
             .register_asset(&issuer, &asset, &AssetClass::Generic, &config);
 
-        let response =
-            te.gateway_client
-                .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
+        let response = te
+            .gateway_client
+            .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
         assert_eq!(response.status, ApprovalStatus::Approved);
         assert!(!response.audit_ref.is_empty());
 
@@ -1017,5 +964,17 @@ mod test {
         assert_eq!(events.len(), 1);
         assert_eq!(events.get(0).unwrap().action, ComplianceAction::Approve);
         assert_eq!(events.get(0).unwrap().kyc_tier_receiver, 2);
+    }
+
+    #[test]
+    #[should_panic(expected = "HostError")]
+    fn test_approve_unknown_asset_panics() {
+        let te = setup_full_env();
+        let sender = Address::generate(&te.env);
+        let receiver = Address::generate(&te.env);
+        let asset = Address::generate(&te.env);
+
+        te.gateway_client
+            .approve(&sender, &receiver, &asset, &1000, &zero_hash(&te.env));
     }
 }
