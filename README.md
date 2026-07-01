@@ -8,6 +8,7 @@
 ![Status](https://img.shields.io/badge/status-In%20Development-yellow)
 ![SEP](https://img.shields.io/badge/SEP--0008-Regulated%20Assets-blue)
 ![SEP](https://img.shields.io/badge/SEP--0012-KYC%2FAML-green)
+![CI](https://github.com/Vicistar-V/rwa-compliance-middleware/actions/workflows/ci.yml/badge.svg)
 
 ---
 
