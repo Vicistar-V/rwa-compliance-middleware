@@ -51,6 +51,7 @@ pub struct GatewayContract;
 #[contractimpl]
 impl GatewayContract {
     #[allow(clippy::too_many_arguments)]
+    /// Initializes the gateway contract with addresses for all dependent sub-contracts (jurisdiction, KYC, enforcement, audit, geo).
     pub fn __constructor(
         env: Env,
         admin: Address,
@@ -82,6 +83,9 @@ impl GatewayContract {
             .set(&DataKey::GeoResolver, &geo_resolver);
     }
 
+    /// Evaluates a transfer for compliance by resolving sender/receiver countries, checking KYC,
+    /// applying jurisdiction rules, and returning an `ApprovalResponse` (approved, rejected, locked, clawed back, revised, or pending).
+    /// Logs the decision to the audit ledger.
     pub fn approve(
         env: Env,
         sender: Address,
@@ -337,6 +341,8 @@ impl GatewayContract {
         }
     }
 
+    /// Registers an asset contract with its issuer-defined compliance rules.
+    /// Requires authentication from the `issuer`. Adds the asset to the registered assets list.
     pub fn register_asset(
         env: Env,
         issuer: Address,
@@ -364,6 +370,8 @@ impl GatewayContract {
         }
     }
 
+    /// Removes an asset's compliance configuration and removes it from the registered assets list.
+    /// Requires authentication from the `issuer`.
     pub fn deregister_asset(env: Env, issuer: Address, asset_contract: Address) {
         issuer.require_auth();
         env.storage()
@@ -387,6 +395,8 @@ impl GatewayContract {
             .set(&DataKey::RegisteredAssets, &new_assets);
     }
 
+    /// Returns the `IssuerRuleConfig` for a registered asset contract.
+    /// Panics if the asset is not registered.
     pub fn get_asset_config(env: Env, asset_contract: Address) -> IssuerRuleConfig {
         env.storage()
             .instance()

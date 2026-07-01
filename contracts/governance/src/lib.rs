@@ -36,6 +36,7 @@ pub struct RuleGovernanceContract;
 
 #[contractimpl]
 impl RuleGovernanceContract {
+    /// Initializes the governance contract with an admin, default quorum threshold, timelock duration, and an empty governor list.
     pub fn __constructor(env: Env, admin: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage()
@@ -53,6 +54,8 @@ impl RuleGovernanceContract {
             .set(&DataKey::Governors, &initial_gov);
     }
 
+    /// Proposes a new jurisdiction rule update. Returns the unique proposal ID.
+    /// Requires authentication from the `proposer`.
     pub fn propose_rule_update(
         env: Env,
         proposer: Address,
@@ -88,6 +91,8 @@ impl RuleGovernanceContract {
         id
     }
 
+    /// Casts a vote (for or against) on an active proposal. Each governor may vote only once.
+    /// Panics if the caller is not a governor or has already voted.
     pub fn vote_on_proposal(env: Env, governor: Address, proposal_id: u64, approve: bool) {
         governor.require_auth();
         Self::check_governor(&env, &governor);
@@ -125,6 +130,8 @@ impl RuleGovernanceContract {
             .set(&DataKey::Vote(proposal_id, governor), &true);
     }
 
+    /// Executes a proposal once it has reached quorum and the timelock period has elapsed.
+    /// Marks the proposal as executed.
     pub fn execute_proposal(env: Env, proposal_id: u64) {
         let proposal: Proposal = env
             .storage()
@@ -164,6 +171,8 @@ impl RuleGovernanceContract {
             .set(&DataKey::Proposal(proposal_id), &updated);
     }
 
+    /// Cancels an active proposal. Only the original proposer may cancel.
+    /// Marks the proposal as executed (effectively voiding it).
     pub fn cancel_proposal(env: Env, proposer: Address, proposal_id: u64) {
         proposer.require_auth();
 
@@ -188,6 +197,8 @@ impl RuleGovernanceContract {
             .set(&DataKey::Proposal(proposal_id), &updated);
     }
 
+    /// Returns the full `Proposal` struct for a given proposal ID.
+    /// Panics if the proposal does not exist.
     pub fn get_proposal(env: Env, proposal_id: u64) -> Proposal {
         env.storage()
             .instance()
@@ -195,6 +206,8 @@ impl RuleGovernanceContract {
             .expect("proposal not found")
     }
 
+    /// Adds a new governor address to the governor list. Admin-only.
+    /// No-op if the governor is already registered.
     pub fn add_governor(env: Env, admin: Address, governor: Address) {
         admin.require_auth();
         Self::check_admin(&env, &admin);
@@ -214,6 +227,7 @@ impl RuleGovernanceContract {
         }
     }
 
+    /// Updates the minimum number of affirmative votes required to execute a proposal. Admin-only.
     pub fn set_quorum_threshold(env: Env, admin: Address, threshold: u32) {
         admin.require_auth();
         Self::check_admin(&env, &admin);
@@ -222,6 +236,7 @@ impl RuleGovernanceContract {
             .set(&DataKey::QuorumThreshold, &threshold);
     }
 
+    /// Sets the timelock duration (in seconds) that must elapse before a proposal can be executed. Admin-only.
     pub fn set_timelock_duration(env: Env, admin: Address, duration: u64) {
         admin.require_auth();
         Self::check_admin(&env, &admin);
