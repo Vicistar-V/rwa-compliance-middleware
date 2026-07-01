@@ -39,17 +39,11 @@ impl CountryResolverContract {
     pub fn remove_country(env: Env, admin: Address, address: Address) {
         admin.require_auth();
         Self::check_admin(&env, &admin);
-        env.storage()
-            .instance()
-            .remove(&DataKey::WalletCountry(address));
+        env.storage().instance().remove(&DataKey::WalletCountry(address));
     }
 
     fn check_admin(env: &Env, admin: &Address) {
-        let stored: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("admin not set");
+        let stored: Address = env.storage().instance().get(&DataKey::Admin).expect("admin not set");
         if stored != *admin {
             panic!("not authorized");
         }
@@ -109,10 +103,7 @@ mod test {
         assert_eq!(client.resolve_country(&wallet), country_code);
 
         client.remove_country(&admin, &wallet);
-        assert_eq!(
-            client.resolve_country(&wallet),
-            String::from_str(&env, "XX")
-        );
+        assert_eq!(client.resolve_country(&wallet), String::from_str(&env, "XX"));
     }
 
     #[test]
@@ -152,5 +143,15 @@ mod test {
 
         assert_eq!(client.resolve_country(&alice), us);
         assert_eq!(client.resolve_country(&bob), de);
+    }
+
+    #[test]
+    fn test_resolve_country_returns_xx_default() {
+        let (env, _admin) = setup_env();
+        let client = deploy(&env, &_admin);
+        let wallet = Address::generate(&env);
+
+        let country = client.resolve_country(&wallet);
+        assert_eq!(country, String::from_str(&env, "XX"));
     }
 }
