@@ -13,10 +13,12 @@ pub struct CountryResolverContract;
 
 #[contractimpl]
 impl CountryResolverContract {
+    /// Initializes the contract with the given admin address.
     pub fn __constructor(env: Env, admin: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
     }
 
+    /// Returns the country code for a wallet address, or `"XX"` if unset.
     pub fn resolve_country(env: Env, address: Address) -> String {
         env.storage()
             .instance()
@@ -24,6 +26,7 @@ impl CountryResolverContract {
             .unwrap_or(String::from_str(&env, "XX"))
     }
 
+    /// Sets the country code for a wallet address. Only callable by the admin.
     pub fn set_country(env: Env, admin: Address, address: Address, country_code: String) {
         admin.require_auth();
         Self::check_admin(&env, &admin);
@@ -32,6 +35,7 @@ impl CountryResolverContract {
             .set(&DataKey::WalletCountry(address), &country_code);
     }
 
+    /// Removes the country code for a wallet address. Only callable by the admin.
     pub fn remove_country(env: Env, admin: Address, address: Address) {
         admin.require_auth();
         Self::check_admin(&env, &admin);

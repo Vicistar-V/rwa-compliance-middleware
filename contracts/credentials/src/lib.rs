@@ -18,6 +18,7 @@ pub struct CredentialRegistryContract;
 
 #[contractimpl]
 impl CredentialRegistryContract {
+    /// Initializes the contract with the admin, anchor, and oracle authority addresses.
     pub fn __constructor(env: Env, admin: Address, anchor: Address, oracle_authority: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Anchor, &anchor);
@@ -26,6 +27,7 @@ impl CredentialRegistryContract {
             .set(&DataKey::OracleAuthority, &oracle_authority);
     }
 
+    /// Submits a KYC credential for a wallet. Only callable by the anchor.
     pub fn submit_credential(env: Env, anchor: Address, credential: KycCredential) {
         anchor.require_auth();
         let stored_anchor: Address = env
@@ -57,10 +59,12 @@ impl CredentialRegistryContract {
         }
     }
 
+    /// Returns the KYC credential for a wallet, or `None` if not found.
     pub fn get_credential(env: Env, wallet: Address) -> Option<KycCredential> {
         env.storage().instance().get(&DataKey::Credential(wallet))
     }
 
+    /// Revokes a wallet's credential by marking it as sanctioned. Only callable by the anchor.
     pub fn revoke_credential(env: Env, anchor: Address, wallet: Address, _reason: String) {
         anchor.require_auth();
         let stored_anchor: Address = env
@@ -84,6 +88,7 @@ impl CredentialRegistryContract {
             .set(&DataKey::Credential(wallet), &cred);
     }
 
+    /// Flags a wallet as sanctioned. Only callable by the oracle authority.
     pub fn flag_sanctioned(env: Env, oracle_authority: Address, wallet: Address) {
         oracle_authority.require_auth();
         let stored_oracle: Address = env
@@ -111,6 +116,7 @@ impl CredentialRegistryContract {
         }
     }
 
+    /// Removes the sanctioned flag from a wallet. Only callable by the oracle authority.
     pub fn unflag_sanctioned(env: Env, oracle_authority: Address, wallet: Address) {
         oracle_authority.require_auth();
         let stored_oracle: Address = env
@@ -138,6 +144,7 @@ impl CredentialRegistryContract {
         }
     }
 
+    /// Returns whether a wallet is currently flagged as sanctioned.
     pub fn is_sanctioned(env: Env, wallet: Address) -> bool {
         env.storage()
             .instance()
@@ -145,6 +152,7 @@ impl CredentialRegistryContract {
             .unwrap_or(false)
     }
 
+    /// Returns wallet addresses whose credentials expire within the given number of seconds from now.
     pub fn expiring_credentials(env: Env, within_seconds: u64) -> Vec<Address> {
         let wallets: Vec<Address> = env
             .storage()
