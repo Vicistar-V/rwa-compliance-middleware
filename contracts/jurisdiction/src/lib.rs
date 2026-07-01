@@ -977,4 +977,13 @@ mod test {
         );
         client.set_rule(&attacker, &country, &AssetClass::Generic, &rule);
     }
+
+    #[test]
+    fn test_is_sanctioned_unknown_country_false() {
+        let (env, admin) = setup_env();
+        let client = deploy(&env, &admin);
+        let country = make_country(&env, "XX");
+
+        assert!(!client.is_sanctioned(&country));
+    }
 }
