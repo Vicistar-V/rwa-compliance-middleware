@@ -6,17 +6,25 @@ use soroban_sdk::{contracttype, Address, BytesN, String, Vec};
 // Enums
 // ---------------------------------------------------------------------------
 
+/// Defines the permissible transfer policies for a jurisdiction/asset pair.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TransferPolicy {
+    /// No restrictions on transfers.
     Open,
+    /// Transfers are restricted but may be allowed under certain conditions.
     Restricted,
+    /// Only accredited investors may receive or hold the asset.
     AccreditedOnly,
+    /// Only institutional entities may receive or hold the asset.
     InstitutionalOnly,
+    /// Transfers are completely prohibited for this jurisdiction.
     Prohibited,
+    /// The jurisdiction is sanctioned; transfers are rejected outright.
     Sanctioned,
 }
 
+/// Broad category of the real-world asset.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AssetClass {
@@ -28,6 +36,7 @@ pub enum AssetClass {
     Generic,
 }
 
+/// Machine-readable reason for a compliance decision.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ReasonCode {
@@ -47,17 +56,25 @@ pub enum ReasonCode {
     ContractPaused,
 }
 
+/// Outcome of a compliance check on a proposed transfer.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ComplianceDecision {
+    /// Transfer is approved.
     Approve,
+    /// Transfer is rejected for the given reason.
     Reject(ReasonCode),
+    /// Assets are locked for the given reason.
     Lock(ReasonCode),
+    /// Assets are clawed back for the given reason.
     Clawback(ReasonCode),
+    /// Issuer must pre-approve before the transfer can proceed.
     PendingIssuerApproval,
+    /// Transfer amount is revised to the given value.
     Revise(u128),
 }
 
+/// Action recorded in a compliance event log.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ComplianceAction {
@@ -69,6 +86,7 @@ pub enum ComplianceAction {
     Blacklist,
 }
 
+/// Status of an issuer approval request.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ApprovalStatus {
@@ -78,11 +96,15 @@ pub enum ApprovalStatus {
     Pending,
 }
 
+/// Severity and nature of an asset lock.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LockType {
+    /// Informational lock; can be lifted by admin.
     Soft,
+    /// Cryptographic lock; cannot be lifted without a clawback event.
     Hard,
+    /// Temporary lock while awaiting issuer approval.
     PendingApproval,
 }
 
@@ -90,6 +112,7 @@ pub enum LockType {
 // Structs
 // ---------------------------------------------------------------------------
 
+/// Compliance rule scoped to a country-code and asset-class pair.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct JurisdictionRule {
@@ -106,6 +129,7 @@ pub struct JurisdictionRule {
     pub updated_at: u64,
 }
 
+/// KYC / AML credential issued by an anchor for a wallet.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct KycCredential {
@@ -120,6 +144,7 @@ pub struct KycCredential {
     pub sanctions_lists_checked: Vec<String>,
 }
 
+/// A single compliance-check event recorded during a transfer attempt.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComplianceEvent {
@@ -139,6 +164,7 @@ pub struct ComplianceEvent {
     pub tx_hash: BytesN<32>,
 }
 
+/// Response from the issuer approval flow.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ApprovalResponse {
@@ -148,6 +174,7 @@ pub struct ApprovalResponse {
     pub audit_ref: String,
 }
 
+/// Configuration for issuer-level rule enforcement.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IssuerRuleConfig {
@@ -158,6 +185,7 @@ pub struct IssuerRuleConfig {
     pub clawback_enabled: bool,
 }
 
+/// Event emitted when assets are clawed back from a holder.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClawbackEvent {
@@ -167,6 +195,7 @@ pub struct ClawbackEvent {
     pub reason: ReasonCode,
 }
 
+/// Persistent record of an asset lock applied to a wallet.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LockRecord {
@@ -178,6 +207,7 @@ pub struct LockRecord {
     pub lock_type: LockType,
 }
 
+/// Persistent record of an executed clawback.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClawbackRecord {
@@ -190,6 +220,7 @@ pub struct ClawbackRecord {
     pub executed_at: u64,
 }
 
+/// Report summarising compliance events over a time window.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComplianceReport {
@@ -205,6 +236,7 @@ pub struct ComplianceReport {
 // ---------------------------------------------------------------------------
 
 impl ReasonCode {
+    /// Returns a human-readable description of this reason code.
     pub fn description(&self) -> &'static str {
         match self {
             ReasonCode::None => "No reason code",
@@ -230,30 +262,37 @@ impl ReasonCode {
 }
 
 impl ComplianceDecision {
+    /// Returns `true` if the decision is [`Approve`](ComplianceDecision::Approve).
     pub fn is_approve(&self) -> bool {
         matches!(self, ComplianceDecision::Approve)
     }
 
+    /// Returns `true` if the decision is [`Reject`](ComplianceDecision::Reject).
     pub fn is_reject(&self) -> bool {
         matches!(self, ComplianceDecision::Reject(_))
     }
 
+    /// Returns `true` if the decision is [`Lock`](ComplianceDecision::Lock).
     pub fn is_lock(&self) -> bool {
         matches!(self, ComplianceDecision::Lock(_))
     }
 
+    /// Returns `true` if the decision is [`Clawback`](ComplianceDecision::Clawback).
     pub fn is_clawback(&self) -> bool {
         matches!(self, ComplianceDecision::Clawback(_))
     }
 
+    /// Returns `true` if the decision is [`PendingIssuerApproval`](ComplianceDecision::PendingIssuerApproval).
     pub fn is_pending(&self) -> bool {
         matches!(self, ComplianceDecision::PendingIssuerApproval)
     }
 
+    /// Returns `true` if the decision is [`Revise`](ComplianceDecision::Revise).
     pub fn is_revise(&self) -> bool {
         matches!(self, ComplianceDecision::Revise(_))
     }
 
+    /// Returns the inner [`ReasonCode`] for `Reject`, `Lock`, or `Clawback` variants.
     pub fn reason_code(&self) -> Option<&ReasonCode> {
         match self {
             ComplianceDecision::Reject(r)
@@ -265,6 +304,7 @@ impl ComplianceDecision {
 }
 
 impl JurisdictionRule {
+    /// Creates a new [`JurisdictionRule`] with the given parameters.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         country_code: String,
@@ -296,16 +336,19 @@ impl JurisdictionRule {
 }
 
 impl KycCredential {
+    /// Returns `true` if the credential has expired by `current_timestamp`.
     pub fn is_expired(&self, current_timestamp: u64) -> bool {
         self.expires_at < current_timestamp
     }
 
+    /// Returns `true` if the credential's tier meets `required_tier` and the holder is not sanctioned.
     pub fn meets_tier_requirement(&self, required_tier: u32) -> bool {
         self.tier >= required_tier && !self.is_sanctioned
     }
 }
 
 impl ComplianceEvent {
+    /// Creates a new [`ComplianceEvent`] with the given parameters.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         event_id: u64,
@@ -346,6 +389,8 @@ impl ComplianceEvent {
 // evaluate_transfer — pure function, no storage access
 // ---------------------------------------------------------------------------
 
+/// Pure-function compliance check. Returns a [`ComplianceDecision`] based on the
+/// sender/receiver jurisdiction rules, KYC state, holding period, and caps.
 #[allow(clippy::too_many_arguments)]
 pub fn evaluate_transfer(
     sender_rule: &JurisdictionRule,
