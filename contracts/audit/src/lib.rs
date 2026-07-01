@@ -30,20 +30,12 @@ impl AuditLedgerContract {
     pub fn log_event(env: Env, caller: Address, event: ComplianceEvent) -> u64 {
         Self::check_gateway(&env, &caller);
 
-        let id: u64 = env
-            .storage()
-            .instance()
-            .get(&DataKey::NextEventId)
-            .unwrap_or(1);
-        env.storage()
-            .instance()
-            .set(&DataKey::NextEventId, &(id + 1));
+        let id: u64 = env.storage().instance().get(&DataKey::NextEventId).unwrap_or(1);
+        env.storage().instance().set(&DataKey::NextEventId, &(id + 1));
 
         let mut stored_event = event;
         stored_event.event_id = id;
-        env.storage()
-            .instance()
-            .set(&DataKey::Event(id), &stored_event);
+        env.storage().instance().set(&DataKey::Event(id), &stored_event);
 
         let mut asset_ids: Vec<u64> = env
             .storage()
@@ -51,10 +43,9 @@ impl AuditLedgerContract {
             .get(&DataKey::AssetEventIds(stored_event.asset_contract.clone()))
             .unwrap_or(vec![&env]);
         asset_ids.push_back(id);
-        env.storage().instance().set(
-            &DataKey::AssetEventIds(stored_event.asset_contract.clone()),
-            &asset_ids,
-        );
+        env.storage()
+            .instance()
+            .set(&DataKey::AssetEventIds(stored_event.asset_contract.clone()), &asset_ids);
 
         let mut sender_ids: Vec<u64> = env
             .storage()
@@ -62,10 +53,9 @@ impl AuditLedgerContract {
             .get(&DataKey::WalletEventIds(stored_event.sender.clone()))
             .unwrap_or(vec![&env]);
         sender_ids.push_back(id);
-        env.storage().instance().set(
-            &DataKey::WalletEventIds(stored_event.sender.clone()),
-            &sender_ids,
-        );
+        env.storage()
+            .instance()
+            .set(&DataKey::WalletEventIds(stored_event.sender.clone()), &sender_ids);
 
         let mut receiver_ids: Vec<u64> = env
             .storage()
@@ -73,21 +63,15 @@ impl AuditLedgerContract {
             .get(&DataKey::WalletEventIds(stored_event.receiver.clone()))
             .unwrap_or(vec![&env]);
         receiver_ids.push_back(id);
-        env.storage().instance().set(
-            &DataKey::WalletEventIds(stored_event.receiver),
-            &receiver_ids,
-        );
+        env.storage()
+            .instance()
+            .set(&DataKey::WalletEventIds(stored_event.receiver), &receiver_ids);
 
         id
     }
 
     /// Queries compliance events for an asset with pagination (`from_id`, `limit`).
-    pub fn query_events(
-        env: Env,
-        asset_contract: Address,
-        from_id: u64,
-        limit: u32,
-    ) -> Vec<ComplianceEvent> {
+    pub fn query_events(env: Env, asset_contract: Address, from_id: u64, limit: u32) -> Vec<ComplianceEvent> {
         let ids: Vec<u64> = env
             .storage()
             .instance()
@@ -116,12 +100,7 @@ impl AuditLedgerContract {
     }
 
     /// Queries compliance events involving a specific wallet with pagination (`from_id`, `limit`).
-    pub fn query_wallet_events(
-        env: Env,
-        wallet: Address,
-        from_id: u64,
-        limit: u32,
-    ) -> Vec<ComplianceEvent> {
+    pub fn query_wallet_events(env: Env, wallet: Address, from_id: u64, limit: u32) -> Vec<ComplianceEvent> {
         let ids: Vec<u64> = env
             .storage()
             .instance()
@@ -186,11 +165,7 @@ impl AuditLedgerContract {
     }
 
     pub fn get_event_count(env: Env) -> u64 {
-        let next: u64 = env
-            .storage()
-            .instance()
-            .get(&DataKey::NextEventId)
-            .unwrap_or(1);
+        let next: u64 = env.storage().instance().get(&DataKey::NextEventId).unwrap_or(1);
         next - 1
     }
 
@@ -254,11 +229,7 @@ mod test {
         (env, admin, gateway)
     }
 
-    fn deploy<'a>(
-        env: &'a Env,
-        admin: &Address,
-        gateway: &Address,
-    ) -> AuditLedgerContractClient<'a> {
+    fn deploy<'a>(env: &'a Env, admin: &Address, gateway: &Address) -> AuditLedgerContractClient<'a> {
         let contract_id = env.register(AuditLedgerContract, (admin.clone(), gateway.clone()));
         AuditLedgerContractClient::new(env, &contract_id)
     }
@@ -500,6 +471,30 @@ mod test {
         let asset = Address::generate(&env);
 
         let events = client.query_events(&asset, &1, &10);
+        assert_eq!(events.len(), 0);
+    }
+
+    #[test]
+    fn test_query_events_invalid_range() {
+        let (env, admin, gateway) = setup_env();
+        let client = deploy(&env, &admin, &gateway);
+        let asset = Address::generate(&env);
+        let sender = Address::generate(&env);
+        let receiver = Address::generate(&env);
+
+        let event = make_event(
+            &env,
+            0,
+            &asset,
+            ComplianceAction::Approve,
+            &sender,
+            &receiver,
+            1_700_000_000,
+            ReasonCode::None,
+        );
+        client.log_event(&gateway, &event);
+
+        let events = client.query_events(&asset, &99, &10);
         assert_eq!(events.len(), 0);
     }
 
