@@ -380,4 +380,14 @@ mod test {
         let result = client.get_credential(&wallet);
         assert!(result.is_none());
     }
+
+    #[test]
+    fn test_unflag_not_flagged_is_noop() {
+        let (env, admin, anchor, oracle) = setup_env();
+        let client = deploy(&env, &admin, &anchor, &oracle);
+        let wallet = Address::generate(&env);
+
+        client.unflag_sanctioned(&oracle, &wallet);
+        assert!(!client.is_sanctioned(&wallet));
+    }
 }
