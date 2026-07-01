@@ -21,6 +21,8 @@ pub struct EnforcementEngineContract;
 
 #[contractimpl]
 impl EnforcementEngineContract {
+    /// Initializes the contract with an admin and an authority address.
+    /// Only the authority can perform restricted actions (lock, unlock, clawback).
     pub fn __constructor(env: Env, admin: Address, authority: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage()
@@ -31,6 +33,8 @@ impl EnforcementEngineContract {
             .set(&DataKey::NextClawbackId, &1u64);
     }
 
+    /// Locks a wallet for a given asset with an optional duration.
+    /// A `None` duration creates a soft lock; `Some(duration)` creates a hard lock with an expiry.
     pub fn lock_asset(
         env: Env,
         authority: Address,
@@ -75,6 +79,7 @@ impl EnforcementEngineContract {
         }
     }
 
+    /// Removes the lock on a wallet for a given asset, restoring its ability to transact.
     pub fn unlock_asset(env: Env, authority: Address, asset_contract: Address, wallet: Address) {
         authority.require_auth();
         Self::check_authority(&env, &authority);
@@ -101,6 +106,8 @@ impl EnforcementEngineContract {
             .set(&DataKey::LockedWallets(asset_contract), &new_wallets);
     }
 
+    /// Forcibly transfers `amount` tokens from `holder` to `destination` and removes the holder's lock.
+    /// Records the action in the clawback history for the asset.
     pub fn execute_clawback(
         env: Env,
         authority: Address,
@@ -168,6 +175,7 @@ impl EnforcementEngineContract {
             .set(&DataKey::LockedWallets(asset_contract), &new_wallets);
     }
 
+    /// Adds a wallet to the whitelist for the specified asset, permitting compliant transactions.
     pub fn whitelist_address(
         env: Env,
         issuer: Address,
@@ -181,6 +189,7 @@ impl EnforcementEngineContract {
             .set(&DataKey::Whitelisted(asset_contract, wallet), &true);
     }
 
+    /// Adds a wallet to the blacklist for the specified asset, blocking all transactions.
     pub fn blacklist_address(
         env: Env,
         issuer: Address,
@@ -194,6 +203,7 @@ impl EnforcementEngineContract {
             .set(&DataKey::Blacklisted(asset_contract, wallet), &true);
     }
 
+    /// Returns `true` if the wallet is whitelisted for the given asset.
     pub fn is_whitelisted(env: Env, asset_contract: Address, wallet: Address) -> bool {
         env.storage()
             .instance()
@@ -201,6 +211,7 @@ impl EnforcementEngineContract {
             .unwrap_or(false)
     }
 
+    /// Returns `true` if the wallet is blacklisted for the given asset.
     pub fn is_blacklisted(env: Env, asset_contract: Address, wallet: Address) -> bool {
         env.storage()
             .instance()
@@ -208,6 +219,7 @@ impl EnforcementEngineContract {
             .unwrap_or(false)
     }
 
+    /// Returns all lock records for the given asset, including lock type, reason, and duration.
     pub fn get_locked_wallets(env: Env, asset_contract: Address) -> Vec<LockRecord> {
         let wallets: Vec<Address> = env
             .storage()
@@ -229,6 +241,7 @@ impl EnforcementEngineContract {
         records
     }
 
+    /// Returns the full clawback history for the given asset, ordered by event ID.
     pub fn get_clawback_history(env: Env, asset_contract: Address) -> Vec<ClawbackRecord> {
         let ids: Vec<u64> = env
             .storage()

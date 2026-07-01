@@ -18,12 +18,15 @@ pub struct AuditLedgerContract;
 
 #[contractimpl]
 impl AuditLedgerContract {
+    /// Initializes the contract with an admin and a gateway address.
+    /// Only the gateway can log compliance events.
     pub fn __constructor(env: Env, admin: Address, gateway: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Gateway, &gateway);
         env.storage().instance().set(&DataKey::NextEventId, &1u64);
     }
 
+    /// Records a compliance event, indexes it by asset and wallet, and returns the assigned event ID.
     pub fn log_event(env: Env, caller: Address, event: ComplianceEvent) -> u64 {
         Self::check_gateway(&env, &caller);
 
@@ -78,6 +81,7 @@ impl AuditLedgerContract {
         id
     }
 
+    /// Queries compliance events for an asset with pagination (`from_id`, `limit`).
     pub fn query_events(
         env: Env,
         asset_contract: Address,
@@ -111,6 +115,7 @@ impl AuditLedgerContract {
         results
     }
 
+    /// Queries compliance events involving a specific wallet with pagination (`from_id`, `limit`).
     pub fn query_wallet_events(
         env: Env,
         wallet: Address,
@@ -144,6 +149,7 @@ impl AuditLedgerContract {
         results
     }
 
+    /// Generates a compliance report for an asset over a timestamp range, including all matching events.
     pub fn export_report(
         env: Env,
         asset_contract: Address,
