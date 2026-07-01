@@ -240,9 +240,7 @@ impl ReasonCode {
     pub fn description(&self) -> &'static str {
         match self {
             ReasonCode::None => "No reason code",
-            ReasonCode::SanctionedJurisdiction => {
-                "Sender or receiver is in a sanctioned jurisdiction"
-            }
+            ReasonCode::SanctionedJurisdiction => "Sender or receiver is in a sanctioned jurisdiction",
             ReasonCode::ProhibitedJurisdiction => "Transfer involves a prohibited jurisdiction",
             ReasonCode::AmountExceedsJurisdictionCap => "Transfer amount exceeds jurisdiction cap",
             ReasonCode::HoldingPeriodNotMet => "Minimum holding period not yet satisfied",
@@ -252,9 +250,7 @@ impl ReasonCode {
             ReasonCode::KycNotFound => "No KYC credential found for wallet",
             ReasonCode::SanctionedAddress => "Wallet address is under sanctions",
             ReasonCode::NotWhitelisted => "Receiver is not on the issuer whitelist",
-            ReasonCode::IssuerApprovalRequired => {
-                "Issuer pre-approval is required for this transfer"
-            }
+            ReasonCode::IssuerApprovalRequired => "Issuer pre-approval is required for this transfer",
             ReasonCode::AssetClassRestricted => "Asset class is restricted for this jurisdiction",
             ReasonCode::ContractPaused => "ARCM contract is currently paused",
         }
@@ -295,9 +291,7 @@ impl ComplianceDecision {
     /// Returns the inner [`ReasonCode`] for `Reject`, `Lock`, or `Clawback` variants.
     pub fn reason_code(&self) -> Option<&ReasonCode> {
         match self {
-            ComplianceDecision::Reject(r)
-            | ComplianceDecision::Lock(r)
-            | ComplianceDecision::Clawback(r) => Some(r),
+            ComplianceDecision::Reject(r) | ComplianceDecision::Lock(r) | ComplianceDecision::Clawback(r) => Some(r),
             _ => None,
         }
     }
@@ -520,16 +514,10 @@ mod test {
 
     #[test]
     fn test_reason_code_descriptions() {
-        assert!(ReasonCode::SanctionedJurisdiction
-            .description()
-            .contains("sanctioned"));
+        assert!(ReasonCode::SanctionedJurisdiction.description().contains("sanctioned"));
         assert!(ReasonCode::KycExpired.description().contains("expired"));
-        assert!(ReasonCode::InsufficientKycTier
-            .description()
-            .contains("KYC tier"));
-        assert!(ReasonCode::NotWhitelisted
-            .description()
-            .contains("whitelist"));
+        assert!(ReasonCode::InsufficientKycTier.description().contains("KYC tier"));
+        assert!(ReasonCode::NotWhitelisted.description().contains("whitelist"));
         assert!(ReasonCode::ContractPaused.description().contains("paused"));
     }
 
@@ -844,11 +832,7 @@ mod test {
     #[test]
     fn test_issuer_rule_config() {
         let env = create_test_env();
-        let jurs = vec![
-            &env,
-            make_country_string(&env, "US"),
-            make_country_string(&env, "DE"),
-        ];
+        let jurs = vec![&env, make_country_string(&env, "US"), make_country_string(&env, "DE")];
 
         let config = IssuerRuleConfig {
             asset_class: AssetClass::RealEstate,
@@ -1011,5 +995,37 @@ mod test {
     fn test_reason_code_equality() {
         assert_eq!(ReasonCode::KycExpired, ReasonCode::KycExpired);
         assert_ne!(ReasonCode::KycExpired, ReasonCode::KycNotFound);
+    }
+
+    #[test]
+    fn test_approval_response_variants() {
+        let env = create_test_env();
+        let approved = ApprovalResponse {
+            status: ApprovalStatus::Approved,
+            reason_code: ReasonCode::None,
+            revised_amount: None,
+            audit_ref: make_country_string(&env, "ref1"),
+        };
+        let rejected = ApprovalResponse {
+            status: ApprovalStatus::Rejected,
+            reason_code: ReasonCode::SanctionedJurisdiction,
+            revised_amount: None,
+            audit_ref: make_country_string(&env, "ref2"),
+        };
+        let revised = ApprovalResponse {
+            status: ApprovalStatus::Revised,
+            reason_code: ReasonCode::AmountExceedsJurisdictionCap,
+            revised_amount: Some(1000),
+            audit_ref: make_country_string(&env, "ref3"),
+        };
+
+        assert_eq!(approved.status, ApprovalStatus::Approved);
+        assert_eq!(approved.revised_amount, None);
+
+        assert_eq!(rejected.status, ApprovalStatus::Rejected);
+        assert_eq!(rejected.reason_code, ReasonCode::SanctionedJurisdiction);
+
+        assert_eq!(revised.status, ApprovalStatus::Revised);
+        assert_eq!(revised.revised_amount, Some(1000));
     }
 }
