@@ -170,7 +170,7 @@ impl JurisdictionEngineContract {
                 country_code,
                 AssetClass::Generic,
             ))
-            .map_or(false, |rule: JurisdictionRule| {
+            .is_some_and(|rule: JurisdictionRule| {
                 rule.transfer_policy == TransferPolicy::Sanctioned
             })
     }
@@ -198,6 +198,7 @@ mod test {
         code.into_val(env)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn make_rule(
         env: &Env,
         country: &str,
@@ -224,7 +225,7 @@ mod test {
         )
     }
 
-    fn setup_env<'a>() -> (Env, Address) {
+    fn setup_env() -> (Env, Address) {
         let env = Env::default();
         env.mock_all_auths();
         let admin = Address::generate(&env);

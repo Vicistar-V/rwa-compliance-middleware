@@ -66,6 +66,12 @@ dependencies = [
 name = "arcm-gateway"
 version = "0.1.0"
 dependencies = [
+ "arcm-audit",
+ "arcm-credentials",
+ "arcm-enforcement",
+ "arcm-geo",
+ "arcm-jurisdiction",
+ "arcm-kyc-oracle",
  "arcm-types",
  "soroban-sdk",
 ]

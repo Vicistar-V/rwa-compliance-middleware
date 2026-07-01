@@ -58,7 +58,7 @@ mod test {
     use soroban_sdk::testutils::Address as _;
     use soroban_sdk::{Env, IntoVal};
 
-    fn setup_env<'a>() -> (Env, Address) {
+    fn setup_env() -> (Env, Address) {
         let env = Env::default();
         env.mock_all_auths();
         let admin = Address::generate(&env);

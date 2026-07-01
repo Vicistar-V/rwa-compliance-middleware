@@ -9,4 +9,4 @@ arcm-types = { path = "../../shared/types" }
 arcm-credentials = { path = "../credentials" }
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]

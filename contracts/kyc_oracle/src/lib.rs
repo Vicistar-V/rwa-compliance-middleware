@@ -148,7 +148,7 @@ mod test {
         }
     }
 
-    fn setup_env<'a>() -> (Env, Address, Address, Address) {
+    fn setup_env() -> (Env, Address, Address, Address) {
         let env = Env::default();
         env.mock_all_auths_allowing_non_root_auth();
         let admin = Address::generate(&env);

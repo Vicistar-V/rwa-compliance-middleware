@@ -265,6 +265,7 @@ impl ComplianceDecision {
 }
 
 impl JurisdictionRule {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         country_code: String,
         asset_class: AssetClass,
@@ -305,6 +306,7 @@ impl KycCredential {
 }
 
 impl ComplianceEvent {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         event_id: u64,
         timestamp: u64,
@@ -344,6 +346,7 @@ impl ComplianceEvent {
 // evaluate_transfer — pure function, no storage access
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::too_many_arguments)]
 pub fn evaluate_transfer(
     sender_rule: &JurisdictionRule,
     receiver_rule: &JurisdictionRule,
