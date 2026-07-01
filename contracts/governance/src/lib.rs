@@ -39,9 +39,7 @@ impl RuleGovernanceContract {
     /// Initializes the governance contract with an admin, default quorum threshold, timelock duration, and an empty governor list.
     pub fn __constructor(env: Env, admin: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage()
-            .instance()
-            .set(&DataKey::NextProposalId, &1u64);
+        env.storage().instance().set(&DataKey::NextProposalId, &1u64);
         env.storage()
             .instance()
             .set(&DataKey::QuorumThreshold, &DEFAULT_QUORUM_THRESHOLD);
@@ -49,9 +47,7 @@ impl RuleGovernanceContract {
             .instance()
             .set(&DataKey::TimelockDuration, &DEFAULT_TIMELOCK_SECONDS);
         let initial_gov: Vec<Address> = vec![&env];
-        env.storage()
-            .instance()
-            .set(&DataKey::Governors, &initial_gov);
+        env.storage().instance().set(&DataKey::Governors, &initial_gov);
     }
 
     /// Proposes a new jurisdiction rule update. Returns the unique proposal ID.
@@ -65,14 +61,8 @@ impl RuleGovernanceContract {
     ) -> u64 {
         proposer.require_auth();
 
-        let id: u64 = env
-            .storage()
-            .instance()
-            .get(&DataKey::NextProposalId)
-            .unwrap_or(1);
-        env.storage()
-            .instance()
-            .set(&DataKey::NextProposalId, &(id + 1));
+        let id: u64 = env.storage().instance().get(&DataKey::NextProposalId).unwrap_or(1);
+        env.storage().instance().set(&DataKey::NextProposalId, &(id + 1));
 
         let proposal = Proposal {
             id,
@@ -85,9 +75,7 @@ impl RuleGovernanceContract {
             votes_for: 0,
             votes_against: 0,
         };
-        env.storage()
-            .instance()
-            .set(&DataKey::Proposal(id), &proposal);
+        env.storage().instance().set(&DataKey::Proposal(id), &proposal);
         id
     }
 
@@ -122,9 +110,7 @@ impl RuleGovernanceContract {
             proposal.votes_against += 1;
         }
 
-        env.storage()
-            .instance()
-            .set(&DataKey::Proposal(proposal_id), &proposal);
+        env.storage().instance().set(&DataKey::Proposal(proposal_id), &proposal);
         env.storage()
             .instance()
             .set(&DataKey::Vote(proposal_id, governor), &true);
@@ -166,9 +152,7 @@ impl RuleGovernanceContract {
 
         let mut updated = proposal;
         updated.executed = true;
-        env.storage()
-            .instance()
-            .set(&DataKey::Proposal(proposal_id), &updated);
+        env.storage().instance().set(&DataKey::Proposal(proposal_id), &updated);
     }
 
     /// Cancels an active proposal. Only the original proposer may cancel.
@@ -192,9 +176,7 @@ impl RuleGovernanceContract {
 
         let mut updated = proposal;
         updated.executed = true;
-        env.storage()
-            .instance()
-            .set(&DataKey::Proposal(proposal_id), &updated);
+        env.storage().instance().set(&DataKey::Proposal(proposal_id), &updated);
     }
 
     /// Returns the full `Proposal` struct for a given proposal ID.
@@ -212,18 +194,12 @@ impl RuleGovernanceContract {
         admin.require_auth();
         Self::check_admin(&env, &admin);
 
-        let mut governors: Vec<Address> = env
-            .storage()
-            .instance()
-            .get(&DataKey::Governors)
-            .unwrap_or(vec![&env]);
+        let mut governors: Vec<Address> = env.storage().instance().get(&DataKey::Governors).unwrap_or(vec![&env]);
 
         let exists = (0..governors.len()).any(|i| governors.get(i).unwrap() == governor);
         if !exists {
             governors.push_back(governor);
-            env.storage()
-                .instance()
-                .set(&DataKey::Governors, &governors);
+            env.storage().instance().set(&DataKey::Governors, &governors);
         }
     }
 
@@ -231,37 +207,25 @@ impl RuleGovernanceContract {
     pub fn set_quorum_threshold(env: Env, admin: Address, threshold: u32) {
         admin.require_auth();
         Self::check_admin(&env, &admin);
-        env.storage()
-            .instance()
-            .set(&DataKey::QuorumThreshold, &threshold);
+        env.storage().instance().set(&DataKey::QuorumThreshold, &threshold);
     }
 
     /// Sets the timelock duration (in seconds) that must elapse before a proposal can be executed. Admin-only.
     pub fn set_timelock_duration(env: Env, admin: Address, duration: u64) {
         admin.require_auth();
         Self::check_admin(&env, &admin);
-        env.storage()
-            .instance()
-            .set(&DataKey::TimelockDuration, &duration);
+        env.storage().instance().set(&DataKey::TimelockDuration, &duration);
     }
 
     fn check_admin(env: &Env, admin: &Address) {
-        let stored: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("admin not set");
+        let stored: Address = env.storage().instance().get(&DataKey::Admin).expect("admin not set");
         if stored != *admin {
             panic!("not authorized");
         }
     }
 
     fn check_governor(env: &Env, governor: &Address) {
-        let governors: Vec<Address> = env
-            .storage()
-            .instance()
-            .get(&DataKey::Governors)
-            .unwrap_or(vec![env]);
+        let governors: Vec<Address> = env.storage().instance().get(&DataKey::Governors).unwrap_or(vec![env]);
         let is_governor = (0..governors.len()).any(|i| governors.get(i).unwrap() == *governor);
         if !is_governor {
             panic!("not a governor");
@@ -386,8 +350,7 @@ mod test {
         client.vote_on_proposal(&governor2, &id, &true);
         client.vote_on_proposal(&governor3, &id, &true);
 
-        env.ledger()
-            .set_timestamp(1_700_000_000 + DEFAULT_TIMELOCK_SECONDS + 1);
+        env.ledger().set_timestamp(1_700_000_000 + DEFAULT_TIMELOCK_SECONDS + 1);
         client.execute_proposal(&id);
 
         let proposal = client.get_proposal(&id);
@@ -482,8 +445,7 @@ mod test {
         let id = client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &rule);
         client.vote_on_proposal(&governor, &id, &true);
 
-        env.ledger()
-            .set_timestamp(1_700_000_000 + DEFAULT_TIMELOCK_SECONDS + 1);
+        env.ledger().set_timestamp(1_700_000_000 + DEFAULT_TIMELOCK_SECONDS + 1);
         client.execute_proposal(&id);
     }
 
@@ -518,5 +480,43 @@ mod test {
         let id = client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &rule);
         client.vote_on_proposal(&g1, &id, &true);
         client.vote_on_proposal(&g2, &id, &true);
+    }
+
+    #[test]
+    fn test_set_quorum_threshold_affects_execution() {
+        let env = Env::default();
+        env.mock_all_auths();
+        env.ledger().set_timestamp(1_700_000_000);
+        let admin = Address::generate(&env);
+
+        let contract_id = env.register(RuleGovernanceContract, (admin.clone(),));
+        let client = RuleGovernanceContractClient::new(&env, &contract_id);
+
+        client.set_quorum_threshold(&admin, &1);
+
+        let proposer = Address::generate(&env);
+        let governor = Address::generate(&env);
+        let country = make_country(&env, "US");
+        let rule = make_rule(&env);
+
+        client.add_governor(&admin, &governor);
+
+        let id = client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &rule);
+        client.vote_on_proposal(&governor, &id, &true);
+
+        env.ledger().set_timestamp(1_700_000_000 + DEFAULT_TIMELOCK_SECONDS + 1);
+        client.execute_proposal(&id);
+
+        let proposal = client.get_proposal(&id);
+        assert!(proposal.executed);
+    }
+
+    #[test]
+    #[should_panic(expected = "HostError")]
+    fn test_non_admin_cannot_set_quorum() {
+        let (env, admin) = setup_env();
+        let client = deploy(&env, &admin);
+        let attacker = Address::generate(&env);
+        client.set_quorum_threshold(&attacker, &1);
     }
 }
