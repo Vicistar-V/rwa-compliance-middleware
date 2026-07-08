@@ -35,9 +35,7 @@ impl JurisdictionEngineContract {
     /// Initialize the contract with an admin address and set the next proposal ID to 1.
     pub fn __constructor(env: Env, admin: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage()
-            .instance()
-            .set(&DataKey::NextProposalId, &1u64);
+        env.storage().instance().set(&DataKey::NextProposalId, &1u64);
     }
 
     /// Retrieve the jurisdiction rule for a given country code and asset class.
@@ -51,24 +49,15 @@ impl JurisdictionEngineContract {
 
     /// Set a jurisdiction rule for a country/asset-class pair. Admin-only.
     /// Tracks the rule key for enumeration via [`list_country_rules`].
-    pub fn set_rule(
-        env: Env,
-        admin: Address,
-        country_code: String,
-        asset_class: AssetClass,
-        rule: JurisdictionRule,
-    ) {
+    pub fn set_rule(env: Env, admin: Address, country_code: String, asset_class: AssetClass, rule: JurisdictionRule) {
         admin.require_auth();
         Self::check_admin(&env, &admin);
 
         let key = DataKey::CountryRule(country_code.clone(), asset_class.clone());
         env.storage().instance().set(&key, &rule);
 
-        let mut keys: Vec<(String, AssetClass)> = env
-            .storage()
-            .instance()
-            .get(&DataKey::RuleKeys)
-            .unwrap_or(vec![&env]);
+        let mut keys: Vec<(String, AssetClass)> =
+            env.storage().instance().get(&DataKey::RuleKeys).unwrap_or(vec![&env]);
 
         let exists = (0..keys.len()).any(|i| {
             let k = keys.get(i).unwrap();
@@ -92,14 +81,8 @@ impl JurisdictionEngineContract {
     ) -> u64 {
         proposer.require_auth();
 
-        let id: u64 = env
-            .storage()
-            .instance()
-            .get(&DataKey::NextProposalId)
-            .unwrap_or(1);
-        env.storage()
-            .instance()
-            .set(&DataKey::NextProposalId, &(id + 1));
+        let id: u64 = env.storage().instance().get(&DataKey::NextProposalId).unwrap_or(1);
+        env.storage().instance().set(&DataKey::NextProposalId, &(id + 1));
 
         let proposal = Proposal {
             id,
@@ -110,9 +93,7 @@ impl JurisdictionEngineContract {
             proposed_at: env.ledger().timestamp(),
             executed: false,
         };
-        env.storage()
-            .instance()
-            .set(&DataKey::Proposal(id), &proposal);
+        env.storage().instance().set(&DataKey::Proposal(id), &proposal);
         id
     }
 
@@ -138,19 +119,13 @@ impl JurisdictionEngineContract {
         env.storage().instance().set(&key, &proposal.new_rule);
 
         proposal.executed = true;
-        env.storage()
-            .instance()
-            .set(&DataKey::Proposal(proposal_id), &proposal);
+        env.storage().instance().set(&DataKey::Proposal(proposal_id), &proposal);
     }
 
     /// Return all jurisdiction rules registered for a given country code,
     /// across all asset classes.
     pub fn list_country_rules(env: Env, country_code: String) -> Vec<JurisdictionRule> {
-        let keys: Vec<(String, AssetClass)> = env
-            .storage()
-            .instance()
-            .get(&DataKey::RuleKeys)
-            .unwrap_or(vec![&env]);
+        let keys: Vec<(String, AssetClass)> = env.storage().instance().get(&DataKey::RuleKeys).unwrap_or(vec![&env]);
 
         let mut result: Vec<JurisdictionRule> = vec![&env];
         for i in 0..keys.len() {
@@ -170,17 +145,11 @@ impl JurisdictionEngineContract {
         env.storage()
             .instance()
             .get(&DataKey::CountryRule(country_code, AssetClass::Generic))
-            .is_some_and(|rule: JurisdictionRule| {
-                rule.transfer_policy == TransferPolicy::Sanctioned
-            })
+            .is_some_and(|rule: JurisdictionRule| rule.transfer_policy == TransferPolicy::Sanctioned)
     }
 
     fn check_admin(env: &Env, admin: &Address) {
-        let stored: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("admin not set");
+        let stored: Address = env.storage().instance().get(&DataKey::Admin).expect("admin not set");
         if stored != *admin {
             panic!("not authorized");
         }
@@ -253,49 +222,16 @@ mod test {
             false,
             false,
         );
-        let open = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
-        let decision = evaluate_transfer(
-            &sanctioned,
-            &open,
-            1000,
-            1,
-            1,
-            9999999999,
-            1_700_000_000,
-            None,
-            None,
-        );
+        let open = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
+        let decision = evaluate_transfer(&sanctioned, &open, 1000, 1, 1, 9999999999, 1_700_000_000, None, None);
         assert!(decision.is_reject());
-        assert_eq!(
-            decision.reason_code(),
-            Some(&ReasonCode::SanctionedJurisdiction)
-        );
+        assert_eq!(decision.reason_code(), Some(&ReasonCode::SanctionedJurisdiction));
     }
 
     #[test]
     fn test_evaluate_sanctioned_receiver() {
         let env = Env::default();
-        let open = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
+        let open = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
         let sanctioned = make_rule(
             &env,
             "KP",
@@ -307,22 +243,9 @@ mod test {
             false,
             false,
         );
-        let decision = evaluate_transfer(
-            &open,
-            &sanctioned,
-            1000,
-            1,
-            1,
-            9999999999,
-            1_700_000_000,
-            None,
-            None,
-        );
+        let decision = evaluate_transfer(&open, &sanctioned, 1000, 1, 1, 9999999999, 1_700_000_000, None, None);
         assert!(decision.is_reject());
-        assert_eq!(
-            decision.reason_code(),
-            Some(&ReasonCode::SanctionedJurisdiction)
-        );
+        assert_eq!(decision.reason_code(), Some(&ReasonCode::SanctionedJurisdiction));
     }
 
     #[test]
@@ -339,33 +262,10 @@ mod test {
             false,
             false,
         );
-        let open = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
-        let decision = evaluate_transfer(
-            &prohibited,
-            &open,
-            1000,
-            1,
-            1,
-            9999999999,
-            1_700_000_000,
-            None,
-            None,
-        );
+        let open = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
+        let decision = evaluate_transfer(&prohibited, &open, 1000, 1, 1, 9999999999, 1_700_000_000, None, None);
         assert!(decision.is_reject());
-        assert_eq!(
-            decision.reason_code(),
-            Some(&ReasonCode::ProhibitedJurisdiction)
-        );
+        assert_eq!(decision.reason_code(), Some(&ReasonCode::ProhibitedJurisdiction));
     }
 
     #[test]
@@ -382,71 +282,18 @@ mod test {
             false,
             false,
         );
-        let receiver = make_rule(
-            &env,
-            "DE",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
-        let decision = evaluate_transfer(
-            &sender,
-            &receiver,
-            1000,
-            1,
-            1,
-            9999999999,
-            1_700_000_000,
-            None,
-            None,
-        );
+        let receiver = make_rule(&env, "DE", TransferPolicy::Open, 1, None, None, None, false, false);
+        let decision = evaluate_transfer(&sender, &receiver, 1000, 1, 1, 9999999999, 1_700_000_000, None, None);
         assert!(decision.is_reject());
-        assert_eq!(
-            decision.reason_code(),
-            Some(&ReasonCode::InsufficientKycTier)
-        );
+        assert_eq!(decision.reason_code(), Some(&ReasonCode::InsufficientKycTier));
     }
 
     #[test]
     fn test_evaluate_kyc_expired_lock() {
         let env = Env::default();
-        let sender = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
-        let receiver = make_rule(
-            &env,
-            "DE",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
-        let decision = evaluate_transfer(
-            &sender,
-            &receiver,
-            1000,
-            1,
-            1,
-            1_500_000_000,
-            1_700_000_000,
-            None,
-            None,
-        );
+        let sender = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
+        let receiver = make_rule(&env, "DE", TransferPolicy::Open, 1, None, None, None, false, false);
+        let decision = evaluate_transfer(&sender, &receiver, 1000, 1, 1, 1_500_000_000, 1_700_000_000, None, None);
         assert!(decision.is_lock());
         assert_eq!(decision.reason_code(), Some(&ReasonCode::KycExpired));
     }
@@ -454,39 +301,9 @@ mod test {
     #[test]
     fn test_evaluate_kyc_expired_clawback() {
         let env = Env::default();
-        let sender = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
-        let receiver = make_rule(
-            &env,
-            "DE",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            true,
-        );
-        let decision = evaluate_transfer(
-            &sender,
-            &receiver,
-            1000,
-            1,
-            1,
-            1_500_000_000,
-            1_700_000_000,
-            None,
-            None,
-        );
+        let sender = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
+        let receiver = make_rule(&env, "DE", TransferPolicy::Open, 1, None, None, None, false, true);
+        let decision = evaluate_transfer(&sender, &receiver, 1000, 1, 1, 1_500_000_000, 1_700_000_000, None, None);
         assert!(decision.is_clawback());
         assert_eq!(decision.reason_code(), Some(&ReasonCode::KycExpired));
     }
@@ -494,44 +311,11 @@ mod test {
     #[test]
     fn test_evaluate_amount_exceeds_cap() {
         let env = Env::default();
-        let sender = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
-        let receiver = make_rule(
-            &env,
-            "DE",
-            TransferPolicy::Open,
-            1,
-            Some(500),
-            None,
-            None,
-            false,
-            false,
-        );
-        let decision = evaluate_transfer(
-            &sender,
-            &receiver,
-            1000,
-            1,
-            1,
-            9999999999,
-            1_700_000_000,
-            None,
-            None,
-        );
+        let sender = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
+        let receiver = make_rule(&env, "DE", TransferPolicy::Open, 1, Some(500), None, None, false, false);
+        let decision = evaluate_transfer(&sender, &receiver, 1000, 1, 1, 9999999999, 1_700_000_000, None, None);
         assert!(decision.is_reject());
-        assert_eq!(
-            decision.reason_code(),
-            Some(&ReasonCode::AmountExceedsJurisdictionCap)
-        );
+        assert_eq!(decision.reason_code(), Some(&ReasonCode::AmountExceedsJurisdictionCap));
     }
 
     #[test]
@@ -548,17 +332,7 @@ mod test {
             false,
             false,
         );
-        let receiver = make_rule(
-            &env,
-            "DE",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
+        let receiver = make_rule(&env, "DE", TransferPolicy::Open, 1, None, None, None, false, false);
         let decision = evaluate_transfer(
             &sender,
             &receiver,
@@ -571,26 +345,13 @@ mod test {
             None,
         );
         assert!(decision.is_reject());
-        assert_eq!(
-            decision.reason_code(),
-            Some(&ReasonCode::HoldingPeriodNotMet)
-        );
+        assert_eq!(decision.reason_code(), Some(&ReasonCode::HoldingPeriodNotMet));
     }
 
     #[test]
     fn test_evaluate_holdings_cap_exceeded() {
         let env = Env::default();
-        let sender = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
+        let sender = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
         let receiver = make_rule(
             &env,
             "DE",
@@ -614,65 +375,22 @@ mod test {
             Some(3000),
         );
         assert!(decision.is_reject());
-        assert_eq!(
-            decision.reason_code(),
-            Some(&ReasonCode::HoldingsCapExceeded)
-        );
+        assert_eq!(decision.reason_code(), Some(&ReasonCode::HoldingsCapExceeded));
     }
 
     #[test]
     fn test_evaluate_issuer_approval_required() {
         let env = Env::default();
-        let sender = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
-        let receiver = make_rule(
-            &env,
-            "DE",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            true,
-            false,
-        );
-        let decision = evaluate_transfer(
-            &sender,
-            &receiver,
-            1000,
-            1,
-            1,
-            9999999999,
-            1_700_000_000,
-            None,
-            None,
-        );
+        let sender = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
+        let receiver = make_rule(&env, "DE", TransferPolicy::Open, 1, None, None, None, true, false);
+        let decision = evaluate_transfer(&sender, &receiver, 1000, 1, 1, 9999999999, 1_700_000_000, None, None);
         assert!(decision.is_pending());
     }
 
     #[test]
     fn test_evaluate_all_checks_pass() {
         let env = Env::default();
-        let sender = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
+        let sender = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
         let receiver = make_rule(
             &env,
             "DE",
@@ -744,17 +462,7 @@ mod test {
         let client = JurisdictionEngineContractClient::new(&env, &contract_id);
 
         let country = make_country(&env, "US");
-        let old_rule = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
+        let old_rule = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
         let new_rule = make_rule(
             &env,
             "US",
@@ -769,12 +477,10 @@ mod test {
 
         client.set_rule(&admin, &country, &AssetClass::Generic, &old_rule);
 
-        let proposal_id =
-            client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
+        let proposal_id = client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
         assert_eq!(proposal_id, 1);
 
-        env.ledger()
-            .set_timestamp(1_700_000_000 + TIMELOCK_SECONDS + 1);
+        env.ledger().set_timestamp(1_700_000_000 + TIMELOCK_SECONDS + 1);
         client.execute_rule_update(&proposal_id);
 
         let retrieved = client.get_rule(&country, &AssetClass::Generic);
@@ -795,17 +501,7 @@ mod test {
         let client = JurisdictionEngineContractClient::new(&env, &contract_id);
 
         let country = make_country(&env, "US");
-        let old_rule = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
+        let old_rule = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
         let new_rule = make_rule(
             &env,
             "US",
@@ -819,8 +515,7 @@ mod test {
         );
 
         client.set_rule(&admin, &country, &AssetClass::Generic, &old_rule);
-        let proposal_id =
-            client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
+        let proposal_id = client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
 
         env.ledger().set_timestamp(1_700_000_000 + 1);
         client.execute_rule_update(&proposal_id);
@@ -839,17 +534,7 @@ mod test {
         let client = JurisdictionEngineContractClient::new(&env, &contract_id);
 
         let country = make_country(&env, "US");
-        let old_rule = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
+        let old_rule = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
         let new_rule = make_rule(
             &env,
             "US",
@@ -863,11 +548,9 @@ mod test {
         );
 
         client.set_rule(&admin, &country, &AssetClass::Generic, &old_rule);
-        let proposal_id =
-            client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
+        let proposal_id = client.propose_rule_update(&proposer, &country, &AssetClass::Generic, &new_rule);
 
-        env.ledger()
-            .set_timestamp(1_700_000_000 + TIMELOCK_SECONDS + 1);
+        env.ledger().set_timestamp(1_700_000_000 + TIMELOCK_SECONDS + 1);
         client.execute_rule_update(&proposal_id);
         client.execute_rule_update(&proposal_id);
     }
@@ -879,17 +562,7 @@ mod test {
         let us = make_country(&env, "US");
         let de = make_country(&env, "DE");
 
-        let rule_us = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
+        let rule_us = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
         let rule_de = make_rule(
             &env,
             "DE",
@@ -964,17 +637,7 @@ mod test {
         let attacker = Address::generate(&env);
 
         let country = make_country(&env, "US");
-        let rule = make_rule(
-            &env,
-            "US",
-            TransferPolicy::Open,
-            1,
-            None,
-            None,
-            None,
-            false,
-            false,
-        );
+        let rule = make_rule(&env, "US", TransferPolicy::Open, 1, None, None, None, false, false);
         client.set_rule(&attacker, &country, &AssetClass::Generic, &rule);
     }
 
